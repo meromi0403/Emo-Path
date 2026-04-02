@@ -224,15 +224,19 @@ else:
 
     # 2단계: 강도
     elif st.session_state.step == 2:
-        recommended_intensity = recommend_intensity(st.session_state.user_text)
+
+        user_text = st.session_state.get("user_text", "")
+
+        recommended_intensity = recommend_intensity(user_text)
 
         intensity = st.radio(
             "강도",
             ["약함", "보통", "강함"],
-            index=["약함", "보통", "강함"].index(recommended_intensity) if recommended_intensity else 1
-          )
-        
-        if st.button("다음", key="steplevel2"):
+            index=["약함", "보통", "강함"].index(recommended_intensity) if recommended_intensity else 1,
+            key="intensity_radio"
+        )
+
+        if st.button("다음", key="step2_next"):
             st.session_state.intensity = intensity
             st.session_state.step = 3
 
