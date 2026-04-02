@@ -332,10 +332,12 @@ else:
 
 if st.button("분석하기"):
    
-    danger_keywords = ["죽고 싶", "사라지고 싶", "힘들어 죽겠"]
+    danger_keywords = ["죽고싶", "자살", "사라지고싶", "힘들다", "끝내고싶다"]
+
+    user_input = st.session_state.get("user_text", "") or st.session_state.get("emotion", "")
 
     if any(word in user_input for word in danger_keywords):
-        st.error("지금 많이 힘든 상태인 것 같아. 혼자 버티지 않아도 괜찮아.")
+        st.warning("지금 많이 힘든 상태로 보여. 혼자 버티지 않아도 괜찮아.")
         st.write("👉 1393 자살 예방 상담 전화")
 
     if user_input.strip() == "":
