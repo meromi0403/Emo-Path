@@ -23,6 +23,44 @@ if "logs" not in st.session_state:
 if "step" not in st.session_state:
     st.session_state.step = 1
 
+def recommend_intensity(text):
+    if not text:
+        return None
+
+    if any(word in text for word in ["너무", "진짜", "완전", "미치겠"]):
+        return "강함"
+    elif any(word in text for word in ["조금", "약간"]):
+        return "약함"
+
+    return "보통"
+
+def get_emotion_color(emotion):
+    colors = {
+        "불안": "#d4edda",
+        "화남": "#cce5ff",
+        "슬픔": "#e2e3e5",
+        "피곤함": "#f8f9fa",
+        "기쁨": "#fff3cd",
+        "괜찮음": "#d1ecf1",
+        "모르겠음": "#eeeeee"
+    }
+    return colors.get(emotion, "#ffffff")
+
+def recommend_from_text(text):
+    if not text:
+        return None
+
+    if any(word in text for word in ["시끄러", "소리", "떠들", "소음"]):
+        return "소리"
+    elif any(word in text for word in ["밝", "눈부", "빛"]):
+        return "빛"
+    elif any(word in text for word in ["복잡", "생각 많", "머리 아픔"]):
+        return "복잡함"
+    elif any(word in text for word in ["말하기", "대화", "대답"]):
+        return "말하기"
+
+    return None
+
 def get_calm_actions(emotion):
     action_map = {
         "불안": ["숨 쉬기", "잠깐 쉬기"],
@@ -37,20 +75,28 @@ def get_calm_actions(emotion):
 
 def show_breathing_box():
     st.markdown("""
-    <div style="
-        padding: 20px;
-        border-radius: 16px;
-        background-color: #eef6ee;
-        border: 1px solid #b7d3b7;
-        text-align: center;
-        margin-top: 10px;
-        margin-bottom: 10px;
-    ">
-        <h3 style="margin-bottom: 10px;">천천히 숨 쉬기</h3>
-        <p style="font-size: 18px;">4초 들이마시기</p>
-        <p style="font-size: 18px;">4초 멈추기</p>
-        <p style="font-size: 18px;">4초 내쉬기</p>
-        <p style="margin-top: 10px;">천천히 따라 해봐.</p>
+    <style>
+    .breath-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background-color: #a8e6cf;
+        margin: 20px auto;
+        animation: breathe 4s infinite;
+    }
+
+    @keyframes breathe {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.5); }
+        100% { transform: scale(1); }
+    }
+    </style>
+
+    <div style="text-align:center;">
+        <h3>천천히 숨 쉬기</h3>
+        <div class="breath-circle"></div>
+        <p>원이 커질 때 들이마시고</p>
+        <p>작아질 때 내쉬어</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -100,7 +146,27 @@ st.markdown("""
 st.title("정서로")
 st.caption("감정을 기록하고, 이해하고, 천천히 정리하는 공간")
 st.set_page_config(page_title="정서로", page_icon="🫧", layout="centered")
+def show_step_progress():
+    step = st.session_state.step
+    total = 5
 
+    st.markdown(f"""
+    <div style="margin-bottom:20px;">
+        <div style="font-weight:600;">진행 단계: {step} / {total}</div>
+        <div style="
+            height:10px;
+            background:#eee;
+            border-radius:10px;
+            overflow:hidden;
+        ">
+            <div style="
+                width:{(step/total)*100}%;
+                height:100%;
+                background:#6c9cff;
+            "></div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.subheader("모드 선택")
 
@@ -164,10 +230,14 @@ else:
 
     # 2단계: 강도
     elif st.session_state.step == 2:
-        st.subheader("얼마나 강해?")
+        recommended_intensity = recommend_intensity(st.session_state.user_text)
 
-        intensity = st.radio("강도", ["약함", "보통", "강함"])
-
+        intensity = st.radio(
+            "강도",
+            ["약함", "보통", "강함"],
+            index=["약함", "보통", "강함"].index(recommended_intensity) if recommended_intensity else 1
+          )
+        
         if st.button("다음"):
             st.session_state.intensity = intensity
             st.session_state.step = 3
@@ -175,15 +245,25 @@ else:
 
     # 3단계: 감각 상태
     elif st.session_state.step == 3:
+
+        recommended = recommend_from_text(st.session_state.user_text)
+
+         # 🔥 자동 스킵
+        if recommended:
+            st.session_state.sensory = recommended
+            st.session_state.step = 4
+            st.rerun()
+
         st.subheader("지금 뭐가 힘들어?")
 
-        sensory = st.selectbox("선택", [
-            "소리", "빛", "복잡함", "말하기", "없음"
-        ])
+        if recommended:
+            st.info(f"👉 '{recommended}' 때문일 가능성이 있어")
 
-        if st.button("다음"):
-            st.session_state.sensory = sensory
-            st.session_state.step = 4
+        sensory = st.selectbox(
+            "선택",
+            ["소리", "빛", "복잡함", "말하기", "없음"],
+            index=["소리", "빛", "복잡함", "말하기", "없음"].index(recommended) if recommended else 0
+         )
 
 
     # 4단계: 도움 선택
@@ -203,6 +283,16 @@ else:
     elif st.session_state.step == 5:
 
         emotion = st.session_state.emotion
+        bg_color = get_emotion_color(st.session_state.emotion)
+
+        st.markdown(f"""
+        <div style="
+            padding:20px;
+            border-radius:16px;
+            background:{bg_color};
+            margin-bottom:15px;
+        ">
+        """, unsafe_allow_html=True)
 
         st.subheader("결과")
 
@@ -210,17 +300,25 @@ else:
             show_breathing_box()
 
         elif st.session_state.choice == "짧은 말":
-            user_input = st.session_state.user_text if st.session_state.user_text else emotion
+
+            user_input = f"""
+            감정: {st.session_state.emotion}
+            강도: {st.session_state.intensity}
+            감각: {st.session_state.sensory}
+            추가 입력: {st.session_state.user_text}
+            """
 
             response = generate_response(
-            user_input=user_input,
-            emotion=emotion,
-            mode="자폐 친화 모드"
+               user_input=user_input,
+               emotion=st.session_state.emotion,
+               mode="자폐 친화 모드"
             )
+
             st.write(response)
 
         elif st.session_state.choice == "조용한 화면":
             show_calm_screen()
+        st.markdown("</div>", unsafe_allow_html=True)
 
         # 기록 저장
         st.session_state.logs.append({
