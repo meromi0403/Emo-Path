@@ -121,14 +121,6 @@ else:
 
 
 
-user_input = st.text_area("오늘 마음을 조금만 들려줄래?", height=150)
-
-if st.session_state.mode == "calm":
-    selected_emotion = st.selectbox("지금 기분을 골라줘", calm_emotions)
-    user_input = st.text_input("더 말하고 싶으면 짧게 적어줘")
-else:
-    user_input = st.text_area("오늘 기분을 적어줘")
-
 if st.button("분석하기"):
    
     danger_keywords = ["죽고 싶", "사라지고 싶", "힘들어 죽겠"]
