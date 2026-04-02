@@ -184,22 +184,128 @@ if st.session_state.mode == "일반 모드":
 
     user_input = st.text_area("오늘 기분을 적어줘")
 
-    if st.button("AI 응답 받기"):
-        emotion = analyze_emotion(user_input)
+if st.button("분석하기"):
+   
+    danger_keywords = ["죽고싶", "자살", "사라지고싶", "힘들다", "끝내고싶다"]
 
-        response = generate_response(
-            user_input=user_input,
-            emotion=emotion,
-            mode="일반 모드"
+    user_input = st.session_state.get("user_text", "") or st.session_state.get("emotion", "")
+
+    if any(word in user_input for word in danger_keywords):
+        st.warning("지금 많이 힘든 상태로 보여. 혼자 버티지 않아도 괜찮아.")
+        st.write("👉 1393 자살 예방 상담 전화")
+
+    if user_input.strip() == "":
+        st.warning("조금만 적어줘 :)")
+    else:
+        emotion = analyze_emotion(user_input)
+        logs = load_logs()
+
+        history = ""
+        stats = ""
+
+        if "logs" not in st.session_state:
+            st.session_state.logs = []
+
+        if len(st.session_state.logs) > 0:
+            recent = st.session_state.logs[-5:]
+            history = " → ".join([log["emotion"] for log in recent])
+
+            emotion_count = {}
+            for log in st.session_state.logs:
+                emo = log["emotion"]
+                emotion_count[emo] = emotion_count.get(emo, 0) + 1
+
+            stats = ", ".join([f"{k}: {v}회" for k, v in emotion_count.items()])
+        response = generate_response(user_input, history, stats)
+        action = recommend_action(emotion["primary_emotion"])
+        signal = robot_signal(
+            emotion["primary_emotion"],
+            emotion["intensity"]
         )
 
-        st.session_state.logs.append({
-            "emotion": emotion,
-            "text": user_input
-        })
+        st.write("🤖 로봇 반응:", signal)
+        
+#저장        
+        save_log(user_input, emotion["primary_emotion"], emotion["intensity"])
 
-        st.subheader("AI 응답")
-        st.write(response)
+        st.divider()
+
+       
+#감정카드 
+    color = get_emotion_color(emotion["primary_emotion"])
+
+    st.markdown(emotion_card(
+    emotion["primary_emotion"],
+    emotion["intensity"],
+    color
+), unsafe_allow_html=True)
+    
+    if st.session_state.mode == "calm":
+        st.markdown(f"""
+        <div style='padding:16px; border-radius:12px; border:1px solid #ccc; background-color:#f7f7f7;'>
+            <b>최근 감정 흐름</b><br>
+            {' → '.join(emotion)}
+        </div>
+        """, unsafe_allow_html=True)   
+
+
+# 공감
+    st.subheader("💬 공감")
+    st.write(response)
+
+ # 행동
+    st.subheader("🌿 추천")
+    st.success(action)
+
+
+# 그래프
+    logs = load_logs()
+
+    if logs:
+        recent = logs[-5:]
+        emotions = [e[0] for e in recent]
+
+        colored_flow = " → ".join([
+            f"<span style='color:{get_emotion_color(e)}'>{e}</span>"
+            for e in emotions
+         ])
+
+        st.markdown(f"""
+        <div style="
+            background: rgba(255,255,255,0.08);
+            padding:20px;
+            border-radius:15px;
+            border:1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            margin-top:20px;
+        ">
+            <h4 style="margin-bottom:10px;">🧠 감정 흐름</h4>
+            <p style="font-size:18px; text-align:center;">
+                {colored_flow}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    if logs:
+        df = pd.DataFrame(logs, columns=["emotion", "intensity"])
+        df["score"] = df["emotion"].apply(emotion_score)
+
+        st.subheader("📊 감정 흐름 그래프")
+        st.line_chart(df["score"])   
+
+    if logs:
+        emotions = [e[0] for e in logs]
+   
+        most_common = max(set(emotions), key=emotions.count)
+        st.subheader("📌 최근 감정 패턴")
+        st.info(f"요즘 가장 많이 느끼는 감정은 **{most_common}** 이야")
+
+    if len(logs) >= 3:
+        recent = [e[0] for e in logs[-3:]]
+
+    if recent.count("불안") >= 2:
+        st.warning("요즘 불안한 상태가 계속 이어지고 있어 보여")
+   
 
 
 # ===========================
@@ -330,125 +436,3 @@ else:
         if st.button("다시 시작"):
             st.session_state.step = 1
 
-if st.button("분석하기"):
-   
-    danger_keywords = ["죽고싶", "자살", "사라지고싶", "힘들다", "끝내고싶다"]
-
-    user_input = st.session_state.get("user_text", "") or st.session_state.get("emotion", "")
-
-    if any(word in user_input for word in danger_keywords):
-        st.warning("지금 많이 힘든 상태로 보여. 혼자 버티지 않아도 괜찮아.")
-        st.write("👉 1393 자살 예방 상담 전화")
-
-    if user_input.strip() == "":
-        st.warning("조금만 적어줘 :)")
-    else:
-        emotion = analyze_emotion(user_input)
-        logs = load_logs()
-
-        history = ""
-        stats = ""
-
-        if "logs" not in st.session_state:
-            st.session_state.logs = []
-
-        if len(st.session_state.logs) > 0:
-            recent = st.session_state.logs[-5:]
-            history = " → ".join([log["emotion"] for log in recent])
-
-            emotion_count = {}
-            for log in st.session_state.logs:
-                emo = log["emotion"]
-                emotion_count[emo] = emotion_count.get(emo, 0) + 1
-
-            stats = ", ".join([f"{k}: {v}회" for k, v in emotion_count.items()])
-        response = generate_response(user_input, history, stats)
-        action = recommend_action(emotion["primary_emotion"])
-        signal = robot_signal(
-            emotion["primary_emotion"],
-            emotion["intensity"]
-        )
-
-        st.write("🤖 로봇 반응:", signal)
-        
-#저장        
-        save_log(user_input, emotion["primary_emotion"], emotion["intensity"])
-
-        st.divider()
-
-       
-#감정카드 
-    color = get_emotion_color(emotion["primary_emotion"])
-
-    st.markdown(emotion_card(
-    emotion["primary_emotion"],
-    emotion["intensity"],
-    color
-), unsafe_allow_html=True)
-    
-    if st.session_state.mode == "calm":
-        st.markdown(f"""
-        <div style='padding:16px; border-radius:12px; border:1px solid #ccc; background-color:#f7f7f7;'>
-            <b>최근 감정 흐름</b><br>
-            {' → '.join(emotion)}
-        </div>
-        """, unsafe_allow_html=True)   
-
-
-# 공감
-    st.subheader("💬 공감")
-    st.write(response)
-
- # 행동
-    st.subheader("🌿 추천")
-    st.success(action)
-
-
-# 그래프
-    logs = load_logs()
-
-    if logs:
-        recent = logs[-5:]
-        emotions = [e[0] for e in recent]
-
-        colored_flow = " → ".join([
-            f"<span style='color:{get_emotion_color(e)}'>{e}</span>"
-            for e in emotions
-         ])
-
-        st.markdown(f"""
-        <div style="
-            background: rgba(255,255,255,0.08);
-            padding:20px;
-            border-radius:15px;
-            border:1px solid rgba(255,255,255,0.2);
-            backdrop-filter: blur(10px);
-            margin-top:20px;
-        ">
-            <h4 style="margin-bottom:10px;">🧠 감정 흐름</h4>
-            <p style="font-size:18px; text-align:center;">
-                {colored_flow}
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    if logs:
-        df = pd.DataFrame(logs, columns=["emotion", "intensity"])
-        df["score"] = df["emotion"].apply(emotion_score)
-
-        st.subheader("📊 감정 흐름 그래프")
-        st.line_chart(df["score"])   
-
-    if logs:
-        emotions = [e[0] for e in logs]
-   
-        most_common = max(set(emotions), key=emotions.count)
-        st.subheader("📌 최근 감정 패턴")
-        st.info(f"요즘 가장 많이 느끼는 감정은 **{most_common}** 이야")
-
-    if len(logs) >= 3:
-        recent = [e[0] for e in logs[-3:]]
-
-    if recent.count("불안") >= 2:
-        st.warning("요즘 불안한 상태가 계속 이어지고 있어 보여")
-   
