@@ -13,6 +13,47 @@ from utils.emotion_score import emotion_score
 from utils.style import get_emotion_color
 import pandas as pd
 
+st.set_page_config(page_title="정서로", page_icon="🫧", layout="centered")
+
+if "mode" not in st.session_state:
+    st.session_state.mode = "일반 모드"
+
+if "logs" not in st.session_state:
+    st.session_state.logs = []
+ 
+
+
+def get_calm_actions(emotion):
+    action_map = {
+        "불안": ["숨 쉬기", "잠깐 쉬기"],
+        "슬픔": ["조용히 있기", "따뜻한 말 보기"],
+        "화남": ["잠깐 멈추기", "감정 다시 고르기"],
+        "피곤함": ["눈 쉬기", "물 마시기"],
+        "기쁨": ["기록 남기기", "좋은 이유 적기"],
+        "괜찮음": ["지금 상태 유지하기", "감정 기록하기"],
+        "모르겠음": ["천천히 생각하기", "다시 고르기"]
+    }
+    return action_map.get(emotion, ["잠깐 쉬기", "다시 해보기"])
+
+def show_breathing_box():
+    st.markdown("""
+    <div style="
+        padding: 20px;
+        border-radius: 16px;
+        background-color: #eef6ee;
+        border: 1px solid #b7d3b7;
+        text-align: center;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    ">
+        <h3 style="margin-bottom: 10px;">천천히 숨 쉬기</h3>
+        <p style="font-size: 18px;">4초 들이마시기</p>
+        <p style="font-size: 18px;">4초 멈추기</p>
+        <p style="font-size: 18px;">4초 내쉬기</p>
+        <p style="margin-top: 10px;">천천히 따라 해봐.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
 def emotion_card(emotion, intensity, color):
     return f"""
     <div style="
@@ -27,8 +68,6 @@ def emotion_card(emotion, intensity, color):
         <p style="font-size:18px;">강도 {intensity}</p>
     </div>
     """
-
-st.set_page_config(layout="centered")
 
 st.markdown("""
 <style>
@@ -50,27 +89,45 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.markdown("""
-<h1 style='text-align: center;'>💚 정서로 💚</h1>
-<p style='text-align: center; color: gray;'>너의 감정을 이해하는 AI</p>
-""", unsafe_allow_html=True)
+st.title("정서로")
+st.caption("감정을 기록하고, 이해하고, 천천히 정리하는 공간")
 
 
-mode = st.radio(
-    "모드 선택",
-    ["일반 모드", "단순 소통 모드"]
+
+st.subheader("모드 선택")
+
+selected_mode = st.radio(
+    "사용 모드를 골라줘",
+    ["일반 모드", "자폐 친화 모드"],
+    index=0 if st.session_state.mode == "일반 모드" else 1
 )
+
+st.session_state.mode = selected_mode
+
+
+
+
+calm_emotions = ["기쁨", "슬픔", "화남", "불안", "피곤함", "괜찮음", "모르겠음"]
+
+selected_emotion = ""
+user_input = ""
+
+if st.session_state.mode == "자폐 친화 모드":
+    st.subheader("지금 기분을 골라줘")
+    selected_emotion = st.selectbox("감정 선택", calm_emotions)
+    user_input = st.text_input("더 말하고 싶으면 짧게 적어줘")
+else:
+    user_input = st.text_area("오늘 기분을 적어줘")
+
+
 
 user_input = st.text_area("오늘 마음을 조금만 들려줄래?", height=150)
 
-if mode == "단순 소통 모드":
-    quick_choice = st.radio(
-        "지금 기분 선택",
-        ["좋아", "별로야", "모르겠어"]
-    )
-
-    if quick_choice:
-        user_input = quick_choice
+if st.session_state.mode == "calm":
+    selected_emotion = st.selectbox("지금 기분을 골라줘", calm_emotions)
+    user_input = st.text_input("더 말하고 싶으면 짧게 적어줘")
+else:
+    user_input = st.text_area("오늘 기분을 적어줘")
 
 if st.button("분석하기"):
    
@@ -87,11 +144,22 @@ if st.button("분석하기"):
         logs = load_logs()
 
         history = ""
-        if logs:
-            history = ", ".join([e[0] for e in logs[-3:]])
+        stats = ""
 
-        stats = get_emotion_stats()
-        response = generate_response(user_input, history, stats, mode)
+        if "logs" not in st.session_state:
+            st.session_state.logs = []
+
+        if len(st.session_state.logs) > 0:
+            recent = st.session_state.logs[-5:]
+            history = " → ".join([log["emotion"] for log in recent])
+
+            emotion_count = {}
+            for log in st.session_state.logs:
+                emo = log["emotion"]
+                emotion_count[emo] = emotion_count.get(emo, 0) + 1
+
+            stats = ", ".join([f"{k}: {v}회" for k, v in emotion_count.items()])
+        response = generate_response(user_input, history, stats)
         action = recommend_action(emotion["primary_emotion"])
         signal = robot_signal(
             emotion["primary_emotion"],
@@ -114,6 +182,14 @@ if st.button("분석하기"):
     emotion["intensity"],
     color
 ), unsafe_allow_html=True)
+    
+    if st.session_state.mode == "calm":
+        st.markdown(f"""
+        <div style='padding:16px; border-radius:12px; border:1px solid #ccc; background-color:#f7f7f7;'>
+            <b>최근 감정 흐름</b><br>
+            {' → '.join(emotion)}
+        </div>
+        """, unsafe_allow_html=True)   
 
 
 # 공감
@@ -124,15 +200,7 @@ if st.button("분석하기"):
     st.subheader("🌿 추천")
     st.success(action)
 
-#단순 모드 UI
-    if mode == "단순 소통 모드":
-        st.markdown("""
-        <style>
-        .stTextArea textarea {
-            font-size: 20px;
-        }
-        </style>
-        """, unsafe_allow_html=True)
+
 # 그래프
     logs = load_logs()
 
