@@ -55,7 +55,22 @@ st.markdown("""
 <p style='text-align: center; color: gray;'>너의 감정을 이해하는 AI</p>
 """, unsafe_allow_html=True)
 
+
+mode = st.radio(
+    "모드 선택",
+    ["일반 모드", "단순 소통 모드"]
+)
+
 user_input = st.text_area("오늘 마음을 조금만 들려줄래?", height=150)
+
+if mode == "단순 소통 모드":
+    quick_choice = st.radio(
+        "지금 기분 선택",
+        ["좋아", "별로야", "모르겠어"]
+    )
+
+    if quick_choice:
+        user_input = quick_choice
 
 if st.button("분석하기"):
    
@@ -76,7 +91,7 @@ if st.button("분석하기"):
             history = ", ".join([e[0] for e in logs[-3:]])
 
         stats = get_emotion_stats()
-        response = generate_response(user_input, history, stats)
+        response = generate_response(user_input, history, stats, mode)
         action = recommend_action(emotion["primary_emotion"])
         signal = robot_signal(
             emotion["primary_emotion"],
@@ -109,7 +124,15 @@ if st.button("분석하기"):
     st.subheader("🌿 추천")
     st.success(action)
 
-
+#단순 모드 UI
+    if mode == "단순 소통 모드":
+        st.markdown("""
+        <style>
+        .stTextArea textarea {
+            font-size: 20px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
 # 그래프
     logs = load_logs()
 
