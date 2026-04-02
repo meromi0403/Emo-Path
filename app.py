@@ -245,7 +245,8 @@ else:
     # 3단계: 감각 상태
     elif st.session_state.step == 3:
 
-        recommended = recommend_from_text(st.session_state.user_text)
+        user_text = st.session_state.get("user_text", "")
+        recommended = recommend_from_text(user_text)
 
          # 🔥 자동 스킵
         if recommended:
