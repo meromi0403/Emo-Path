@@ -13,7 +13,6 @@ from utils.emotion_score import emotion_score
 from utils.style import get_emotion_color
 import pandas as pd
 
-st.set_page_config(page_title="정서로", page_icon="🫧", layout="centered")
 
 if "mode" not in st.session_state:
     st.session_state.mode = "일반 모드"
@@ -91,7 +90,7 @@ st.markdown("""
 
 st.title("정서로")
 st.caption("감정을 기록하고, 이해하고, 천천히 정리하는 공간")
-
+st.set_page_config(page_title="정서로", page_icon="🫧", layout="centered")
 
 
 st.subheader("모드 선택")
