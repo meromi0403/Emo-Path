@@ -240,7 +240,7 @@ else:
         
 
     if st.button("다음", key="step2_next"):
-        st.session_state.emotion = (emotion,"모르겠음")
+        st.session_state.emotion = ("emotion","모르겠음")
         st.session_state.user_text = user_text
         st.session_state.step = 2
 
