@@ -282,8 +282,8 @@ else:
     # 5단계: 결과
     elif st.session_state.step == 5:
 
-        emotion = st.session_state.emotion
-        bg_color = get_emotion_color(st.session_state.emotion)
+        emotion = st.session_state.emotion("emotion", "모르겠음")
+        bg_color = get_emotion_color(emotion)
 
         st.markdown(f"""
         <div style="
