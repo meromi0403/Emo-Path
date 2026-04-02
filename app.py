@@ -20,7 +20,8 @@ if "mode" not in st.session_state:
 if "logs" not in st.session_state:
     st.session_state.logs = []
  
-
+if "step" not in st.session_state:
+    st.session_state.step = 1
 
 def get_calm_actions(emotion):
     action_map = {
@@ -50,6 +51,14 @@ def show_breathing_box():
         <p style="font-size: 18px;">4초 멈추기</p>
         <p style="font-size: 18px;">4초 내쉬기</p>
         <p style="margin-top: 10px;">천천히 따라 해봐.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+def show_calm_screen():
+    st.markdown("""
+    <div style="padding:40px;text-align:center;background:#f5f5f5;border-radius:20px;">
+        <h2>괜찮아</h2>
+        <p>지금은 쉬어도 돼</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -95,30 +104,123 @@ st.set_page_config(page_title="정서로", page_icon="🫧", layout="centered")
 
 st.subheader("모드 선택")
 
-selected_mode = st.radio(
-    "사용 모드를 골라줘",
-    ["일반 모드", "자폐 친화 모드"],
-    index=0 if st.session_state.mode == "일반 모드" else 1
-)
-
-st.session_state.mode = selected_mode
+# ---------------------------
+# 모드 선택
+# ---------------------------
+mode = st.radio("모드 선택", ["일반 모드", "자폐 친화 모드"])
+st.session_state.mode = mode
 
 
+# ===========================
+# 🔵 일반 모드
+# ===========================
+if st.session_state.mode == "일반 모드":
 
-
-calm_emotions = ["기쁨", "슬픔", "화남", "불안", "피곤함", "괜찮음", "모르겠음"]
-
-selected_emotion = ""
-user_input = ""
-
-if st.session_state.mode == "자폐 친화 모드":
-    st.subheader("지금 기분을 골라줘")
-    selected_emotion = st.selectbox("감정 선택", calm_emotions)
-    user_input = st.text_input("더 말하고 싶으면 짧게 적어줘")
-else:
     user_input = st.text_area("오늘 기분을 적어줘")
 
+    if st.button("AI 응답 받기"):
+        emotion = analyze_emotion(user_input)
 
+        response = generate_response(
+            user_input=user_input,
+            emotion=emotion,
+            mode="일반 모드"
+        )
+
+        st.session_state.logs.append({
+            "emotion": emotion,
+            "text": user_input
+        })
+
+        st.subheader("AI 응답")
+        st.write(response)
+
+
+# ===========================
+# 🟢 자폐 친화 모드 (핵심🔥)
+# ===========================
+else:
+
+    # 1단계: 감정
+    if st.session_state.step == 1:
+        st.subheader("지금 상태를 골라줘")
+
+        emotion = st.selectbox("감정", [
+            "불안", "화남", "슬픔", "피곤함", "기쁨", "괜찮음", "모르겠음"
+        ])
+
+        if st.button("다음"):
+            st.session_state.emotion = emotion
+            st.session_state.step = 2
+
+
+    # 2단계: 강도
+    elif st.session_state.step == 2:
+        st.subheader("얼마나 강해?")
+
+        intensity = st.radio("강도", ["약함", "보통", "강함"])
+
+        if st.button("다음"):
+            st.session_state.intensity = intensity
+            st.session_state.step = 3
+
+
+    # 3단계: 감각 상태
+    elif st.session_state.step == 3:
+        st.subheader("지금 뭐가 힘들어?")
+
+        sensory = st.selectbox("선택", [
+            "소리", "빛", "복잡함", "말하기", "없음"
+        ])
+
+        if st.button("다음"):
+            st.session_state.sensory = sensory
+            st.session_state.step = 4
+
+
+    # 4단계: 도움 선택
+    elif st.session_state.step == 4:
+        st.subheader("어떤 도움을 받을래?")
+
+        choice = st.radio("선택", [
+            "진정", "짧은 말", "조용한 화면"
+        ])
+
+        if st.button("시작"):
+            st.session_state.choice = choice
+            st.session_state.step = 5
+
+
+    # 5단계: 결과
+    elif st.session_state.step == 5:
+
+        emotion = st.session_state.emotion
+
+        st.subheader("결과")
+
+        if st.session_state.choice == "진정":
+            show_breathing_box()
+
+        elif st.session_state.choice == "짧은 말":
+            response = generate_response(
+                user_input=emotion,
+                emotion=emotion,
+                mode="자폐 친화 모드"
+            )
+            st.write(response)
+
+        elif st.session_state.choice == "조용한 화면":
+            show_calm_screen()
+
+        # 기록 저장
+        st.session_state.logs.append({
+            "emotion": st.session_state.emotion,
+            "intensity": st.session_state.intensity,
+            "sensory": st.session_state.sensory
+        })
+
+        if st.button("다시 시작"):
+            st.session_state.step = 1
 
 if st.button("분석하기"):
    
