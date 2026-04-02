@@ -1,3 +1,4 @@
+from matplotlib.pyplot import step
 import streamlit as st
 from data.db import init_db
 init_db()
@@ -222,7 +223,7 @@ else:
             placeholder="한두 단어로 적어도 괜찮아"
     )
 
-    if st.button("다음", key="step1_next"):
+    if st.button("다음", key="step2"):
         st.session_state.emotion = emotion
         st.session_state.user_text = user_text
         st.session_state.step = 2
@@ -239,10 +240,10 @@ else:
           )
         
 
-    if st.button("다음", key="step2_next"):
+    if st.button("다음", key="step3" ):
         st.session_state.emotion = ("emotion","모르겠음")
         st.session_state.user_text = user_text
-        st.session_state.step = 2
+        st.session_state.step = 3
 
 
 
