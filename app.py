@@ -183,9 +183,7 @@ st.session_state.mode = mode
 if st.session_state.mode == "일반 모드":
 
     user_input = st.text_area("오늘 기분을 적어줘")
-
     if st.button("분석하기"):
-   
         danger_keywords = ["죽고싶", "자살", "사라지고싶", "힘들다", "끝내고싶다"]
 
         user_input = st.session_state.get("user_text", "") or st.session_state.get("emotion", "")
@@ -305,7 +303,9 @@ if st.session_state.mode == "일반 모드":
         if recent.count("불안") >= 2:
             st.warning("요즘 불안한 상태가 계속 이어지고 있어 보여")
    
+         
 
+        
 
 # ===========================
 # 🟢 자폐 친화 모드 (핵심🔥)
@@ -353,12 +353,6 @@ else:
         user_text = st.session_state.get("user_text", "")
         recommended = recommend_from_text(user_text)
 
-         # 🔥 자동 스킵
-        if recommended:
-            st.session_state.sensory = recommended
-            st.session_state.step = 4
-            st.rerun()
-
         st.subheader("지금 뭐가 힘들어?")
 
         if recommended:
@@ -367,8 +361,14 @@ else:
         sensory = st.selectbox(
             "선택",
             ["소리", "빛", "복잡함", "말하기", "없음"],
-            index=["소리", "빛", "복잡함", "말하기", "없음"].index(recommended) if recommended else 0
-         )
+            index=["소리", "빛", "복잡함", "말하기", "없음"].index(recommended) if recommended else 0,
+            key="sensory_select"
+        )
+
+    # 🔥 여기 추가 (핵심)
+        if st.button("다음", key="step3_next"):
+            st.session_state.sensory = sensory
+            st.session_state.step = 4
         
 
     # 4단계: 도움 선택
@@ -387,7 +387,7 @@ else:
     # 5단계: 결과
     elif st.session_state.step == 5:
 
-        emotion = st.session_state.emotion("emotion", "모르겠음")
+        emotion = st.session_state.get("emotion", "모르겠음")
         bg_color = get_emotion_color(emotion)
 
         st.markdown(f"""
