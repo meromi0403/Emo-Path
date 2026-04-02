@@ -268,10 +268,6 @@ else:
             index=["소리", "빛", "복잡함", "말하기", "없음"].index(recommended) if recommended else 0
          )
         
-    if st.button("다음", key="step3_next"):
-        st.session_state.emotion = emotion
-        st.session_state.user_text = user_text
-        st.session_state.step = 2
 
     # 4단계: 도움 선택
     elif st.session_state.step == 4:
