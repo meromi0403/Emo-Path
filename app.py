@@ -9,7 +9,8 @@ from utils.style import get_emotion_color
 from data.db import load_logs
 from data.db import get_emotion_stats
 from core.recommend import robot_signal
-
+from utils.emotion_score import emotion_score
+from utils.style import get_emotion_color
 import pandas as pd
 
 def emotion_card(emotion, intensity, color):
@@ -113,25 +114,47 @@ if st.button("분석하기"):
     logs = load_logs()
 
     if logs:
-        recent = logs[-5:]  # 최근 5개
-
+        recent = logs[-5:]
         emotions = [e[0] for e in recent]
 
-        st.subheader("🧠 감정 흐름")
+        colored_flow = " → ".join([
+            f"<span style='color:{get_emotion_color(e)}'>{e}</span>"
+            for e in emotions
+         ])
 
-        st.write("최근 감정 흐름:", " → ".join(emotions))
+        st.markdown(f"""
+        <div style="
+            background: rgba(255,255,255,0.08);
+            padding:20px;
+            border-radius:15px;
+            border:1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            margin-top:20px;
+        ">
+            <h4 style="margin-bottom:10px;">🧠 감정 흐름</h4>
+            <p style="font-size:18px; text-align:center;">
+                {colored_flow}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
     if logs:
         df = pd.DataFrame(logs, columns=["emotion", "intensity"])
+        df["score"] = df["emotion"].apply(emotion_score)
 
         st.subheader("📊 감정 흐름 그래프")
-        st.line_chart(df["intensity"])   
+        st.line_chart(df["score"])   
 
     if logs:
         emotions = [e[0] for e in logs]
    
         most_common = max(set(emotions), key=emotions.count)
         st.subheader("📌 최근 감정 패턴")
-        st.info(f"요즘 가장 많이 느끼는 감정은 **{most_common}** 이야")#저장  
+        st.info(f"요즘 가장 많이 느끼는 감정은 **{most_common}** 이야")
 
+    if len(logs) >= 3:
+        recent = [e[0] for e in logs[-3:]]
+
+    if recent.count("불안") >= 2:
+        st.warning("요즘 불안한 상태가 계속 이어지고 있어 보여")
    
