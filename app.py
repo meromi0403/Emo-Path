@@ -143,15 +143,23 @@ else:
 
     # 1단계: 감정
     if st.session_state.step == 1:
-        st.subheader("지금 상태를 골라줘")
+       st.subheader("지금 상태를 골라줘")
 
-        emotion = st.selectbox("감정", [
-            "불안", "화남", "슬픔", "피곤함", "기쁨", "괜찮음", "모르겠음"
-        ])
+       emotion = st.selectbox("감정", [
+        "불안", "화남", "슬픔", "피곤함", "기쁨", "괜찮음", "모르겠음"
+    ])
 
-        if st.button("다음"):
-            st.session_state.emotion = emotion
-            st.session_state.step = 2
+       st.markdown("### 필요하면 짧게 적어도 돼")
+
+       user_text = st.text_input(
+            "말하기 (선택)",
+            placeholder="한두 단어로 적어도 괜찮아"
+    )
+
+    if st.button("다음"):
+        st.session_state.emotion = emotion
+        st.session_state.user_text = user_text
+        st.session_state.step = 2
 
 
     # 2단계: 강도
@@ -202,10 +210,12 @@ else:
             show_breathing_box()
 
         elif st.session_state.choice == "짧은 말":
+            user_input = st.session_state.user_text if st.session_state.user_text else emotion
+
             response = generate_response(
-                user_input=emotion,
-                emotion=emotion,
-                mode="자폐 친화 모드"
+            user_input=user_input,
+            emotion=emotion,
+            mode="자폐 친화 모드"
             )
             st.write(response)
 
