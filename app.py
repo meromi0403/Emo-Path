@@ -1,4 +1,4 @@
-from matplotlib.pyplot import step
+import matplotlib.pyplot as plt
 import streamlit as st
 from data.db import init_db
 init_db()
