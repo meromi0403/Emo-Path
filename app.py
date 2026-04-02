@@ -223,7 +223,7 @@ else:
             placeholder="한두 단어로 적어도 괜찮아"
     )
 
-    if st.button("다음", key="step2"):
+    if st.button("다음", key="nextlevel2"):
         st.session_state.emotion = emotion
         st.session_state.user_text = user_text
         st.session_state.step = 2
@@ -240,7 +240,7 @@ else:
           )
         
 
-    if st.button("다음", key="step3" ):
+    if st.button("다음", key="nextlevel3" ):
         st.session_state.emotion = ("emotion","모르겠음")
         st.session_state.user_text = user_text
         st.session_state.step = 3
