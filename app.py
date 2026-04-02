@@ -211,22 +211,16 @@ else:
     if st.session_state.step == 1:
        st.subheader("지금 상태를 골라줘")
 
-       emotion = st.selectbox("감정", [
-        "불안", "화남", "슬픔", "피곤함", "기쁨", "괜찮음", "모르겠음"
-    ])
+       st.selectbox(
+            "감정",
+            ["불안", "화남", "슬픔", "피곤함", "기쁨", "괜찮음", "모르겠음"],
+            key="emotion"
+        )
 
-       st.markdown("### 필요하면 짧게 적어도 돼")
+       st.text_input("말하기 (선택)", key="user_text")
 
-       user_text = st.text_input(
-            "말하기 (선택)",
-            placeholder="한두 단어로 적어도 괜찮아"
-    )
-
-    if st.button("다음", key="nextlevel2"):
-        st.session_state.emotion = emotion
-        st.session_state.user_text = user_text
-        st.session_state.step = 2
-
+       if st.button("다음", key="nextlevel1"):
+           st.session_state.step = 2      
 
     # 2단계: 강도
     elif st.session_state.step == 2:
@@ -238,11 +232,9 @@ else:
             index=["약함", "보통", "강함"].index(recommended_intensity) if recommended_intensity else 1
           )
         
-
-    if st.button("다음", key="nextlevel3" ):
-        st.session_state.emotion = ("emotion","모르겠음")
-        st.session_state.user_text = user_text
-        st.session_state.step = 3
+        if st.button("다음", key="steplevel2"):
+            st.session_state.intensity = intensity
+            st.session_state.step = 3
 
 
 
