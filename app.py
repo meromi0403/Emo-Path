@@ -222,7 +222,7 @@ else:
             placeholder="한두 단어로 적어도 괜찮아"
     )
 
-    if st.button("다음"):
+    if st.button("다음", key="step1_next"):
         st.session_state.emotion = emotion
         st.session_state.user_text = user_text
         st.session_state.step = 2
@@ -238,9 +238,12 @@ else:
             index=["약함", "보통", "강함"].index(recommended_intensity) if recommended_intensity else 1
           )
         
-        if st.button("다음"):
-            st.session_state.intensity = intensity
-            st.session_state.step = 3
+
+    if st.button("다음", key="step2_next"):
+        st.session_state.emotion = emotion
+        st.session_state.user_text = user_text
+        st.session_state.step = 2
+
 
 
     # 3단계: 감각 상태
@@ -264,7 +267,11 @@ else:
             ["소리", "빛", "복잡함", "말하기", "없음"],
             index=["소리", "빛", "복잡함", "말하기", "없음"].index(recommended) if recommended else 0
          )
-
+        
+    if st.button("다음", key="step3_next"):
+        st.session_state.emotion = emotion
+        st.session_state.user_text = user_text
+        st.session_state.step = 2
 
     # 4단계: 도움 선택
     elif st.session_state.step == 4:
