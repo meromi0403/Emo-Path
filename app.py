@@ -23,6 +23,15 @@ if "logs" not in st.session_state:
 if "step" not in st.session_state:
     st.session_state.step = 1
 
+if "emotion" not in st.session_state:
+    st.session_state.emotion = "모르겠음"
+
+if "intensity" not in st.session_state:
+    st.session_state.intensity = "보통"
+
+if "sensory" not in st.session_state:
+    st.session_state.sensory = "없음"
+
 def recommend_intensity(text):
     if not text:
         return None
@@ -427,10 +436,11 @@ else:
 
         # 기록 저장
         st.session_state.logs.append({
-            "emotion": st.session_state.emotion,
-            "intensity": st.session_state.intensity,
-            "sensory": st.session_state.sensory
+            "emotion": st.session_state.get("emotion", "모르겠음"),
+            "intensity": st.session_state.get("intensity", "보통"),
+            "sensory": st.session_state.get("sensory", "없음")
         })
+        
 
         if st.button("다시 시작"):
             st.session_state.step = 1
