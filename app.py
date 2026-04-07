@@ -444,17 +444,16 @@ def show_autism_mode():
 
     if st.session_state.step == 1:
         st.subheader("지금 상태를 골라줘")
-        st.selectbox(
-            "감정",
-            ["불안", "화남", "슬픔", "피곤함", "기쁨", "괜찮음", "모르겠음"],
-            key="emotion",
+        selected_emotion = st.selectbox(
+           "감정",
+           ["불안", "화남", "슬픔", "피곤함", "기쁨", "괜찮음", "모르겠음"],
         )
         emotion = st.session_state.get("emotion")
-        st.write("DEBUG step1 emotion:", emotion)
-        
+
         st.text_input("말하기 (선택)", key="user_text")
 
         if st.button("다음", key="step1_next"):
+           st.session_state.emotion = selected_emotion
            st.session_state.step = 2
            st.rerun()
 
@@ -507,7 +506,7 @@ def show_autism_mode():
             st.rerun()
 
     elif st.session_state.step == 5:
-        st.write("DEBUG emotion:", st.session_state.get("emotion"))
+       
         emotion = st.session_state.get("emotion")
         if not emotion:
             emotion = "모르겠음"
