@@ -43,6 +43,8 @@ def generate_response(user_input, chat_history=None, emotion=None, mode="일반 
 - 공감 중심으로 말해
 - 너무 길게 말하지 마
 - 부드럽고 안정적으로 말해
+- 반드시 이 감정을 기반으로 공감해라.
+- 절대 '모르겠음' 같은 애매한 표현 쓰지 마.
 """
 
     messages.append({
