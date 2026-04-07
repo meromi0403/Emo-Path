@@ -449,10 +449,12 @@ def show_autism_mode():
             ["불안", "화남", "슬픔", "피곤함", "기쁨", "괜찮음", "모르겠음"],
             key="emotion",
         )
+        emotion = st.session_state.get("emotion")
+        st.write("DEBUG step1 emotion:", emotion)
+        
         st.text_input("말하기 (선택)", key="user_text")
 
         if st.button("다음", key="step1_next"):
-           st.session_state.emotion = st.session_state.get("emotion")  # 🔥 강제 저장
            st.session_state.step = 2
            st.rerun()
 
