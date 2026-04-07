@@ -191,7 +191,8 @@ def show_state_badge(emotion: str, state: str):
         """,
         unsafe_allow_html=True,
     )
-
+    st.caption("최근 감정 패턴을 기반으로 상태를 분석했습니다")
+    
 
 def build_history_and_stats(logs: list[dict]):
     if not logs:
@@ -298,6 +299,37 @@ def show_general_mode():
         response = generate_response(user_input, history, stats)
         action = recommend_action(primary_emotion)
         state = detect_state(st.session_state.logs)
+        # 상태 기반 UI 변화
+        if state == "불안 축적 상태":
+            st.markdown("""
+                <style>
+                .stApp {
+                    background-color: #fff5f5;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+            st.warning("지금 불안이 계속 쌓이고 있어요. 잠깐 쉬는 게 좋아요.")
+            st.write("👉 입력을 줄이고 간단한 선택을 추천해요")
+            
+        elif state == "감정 변동 상태":
+            st.markdown("""
+                <style>
+                .stApp {
+                    background-color: #f0f8ff;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+            st.info("감정 변화가 큰 상태예요. 천천히 정리해볼까요?")
+
+        elif state == "안정 상태":
+            st.markdown("""
+                <style>
+                .stApp {
+                    background-color: #f6fff5;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+            st.success("지금은 안정된 상태예요 👍")
 
         st.markdown(emotion_card(primary_emotion, intensity, state), unsafe_allow_html=True)
         show_state_badge(primary_emotion, state)
