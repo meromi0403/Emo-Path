@@ -1,25 +1,526 @@
 import streamlit as st
-from data.db import init_db
-init_db()
+import pandas as pd
+from datetime import datetime
+
+from data.db import init_db, save_log, load_logs
 from core.emotion import analyze_emotion
 from core.response import generate_response
 from core.recommend import recommend_action
-from data.db import save_log, load_logs
-from utils.style import get_emotion_color
-from data.db import load_logs
-from data.db import get_emotion_stats
-from core.recommend import robot_signal
-from utils.emotion_score import emotion_score
-from utils.style import get_emotion_color
-import pandas as pd
+
+# ---------------------------------
+# 기본 설정
+# ---------------------------------
+st.set_page_config(page_title="정서로", page_icon="🫧", layout="centered")
+init_db()
+
+# ---------------------------------
+# 상수 / 유틸
+# ---------------------------------
+EMOTION_BG_COLORS = {
+    "불안": "#d4edda",
+    "화남": "#cce5ff",
+    "슬픔": "#e2e3e5",
+    "피곤함": "#f8f9fa",
+    "기쁨": "#fff3cd",
+    "괜찮음": "#d1ecf1",
+    "모르겠음": "#eeeeee",
+}
+
+EMOTION_TEXT_COLORS = {
+    "불안": "#dc3545",
+    "화남": "#0d6efd",
+    "슬픔": "#6c757d",
+    "피곤함": "#868e96",
+    "기쁨": "#f59f00",
+    "괜찮음": "#17a2b8",
+    "모르겠음": "#999999",
+}
+
+EMOTION_SCORE_MAP = {
+    "약함": 1,
+    "보통": 2,
+    "강함": 3,
+    1: 1,
+    2: 2,
+    3: 3,
+    4: 4,
+    5: 5,
+}
+
+DANGER_KEYWORDS = ["죽고싶", "자살", "사라지고싶", "끝내고싶", "없어지고싶"]
 
 
+def get_bg_color(emotion: str) -> str:
+    return EMOTION_BG_COLORS.get(emotion, "#ffffff")
+
+
+def get_text_color(emotion: str) -> str:
+    return EMOTION_TEXT_COLORS.get(emotion, "#666666")
+
+
+def intensity_to_score(value):
+    return EMOTION_SCORE_MAP.get(value, 2)
+
+
+def detect_state(logs: list[dict]) -> str:
+    if len(logs) < 3:
+        return "분석 중"
+
+    recent = logs[-3:]
+    emotions = [log.get("emotion", "모르겠음") for log in recent]
+    intensities = [intensity_to_score(log.get("intensity", "보통")) for log in recent]
+
+    if emotions.count("불안") >= 2 and intensities[-1] >= intensities[0]:
+        return "불안 축적 상태"
+
+    if len(set(emotions)) >= 3:
+        return "감정 변동 상태"
+
+    if max(intensities) <= 2 and len(set(emotions)) <= 2:
+        return "안정 상태"
+
+    return "관찰 중"
+
+
+def recommend_intensity(text: str):
+    if not text:
+        return None
+    if any(word in text for word in ["너무", "진짜", "완전", "미치겠", "숨막", "폭발"]):
+        return "강함"
+    if any(word in text for word in ["조금", "약간", "살짝"]):
+        return "약함"
+    return "보통"
+
+
+def recommend_from_text(text: str):
+    if not text:
+        return None
+
+    if any(word in text for word in ["시끄러", "소리", "떠들", "소음"]):
+        return "소리"
+    if any(word in text for word in ["밝", "눈부", "빛"]):
+        return "빛"
+    if any(word in text for word in ["복잡", "머리 아픔", "생각 많", "정신없"]):
+        return "복잡함"
+    if any(word in text for word in ["말하기", "대화", "대답", "말하기 싫"]):
+        return "말하기"
+    return None
+
+
+def show_breathing_box():
+    st.markdown(
+        """
+        <style>
+        .breath-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: #a8e6cf;
+            margin: 20px auto;
+            animation: breathe 4s infinite;
+        }
+
+        @keyframes breathe {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.45); }
+            100% { transform: scale(1); }
+        }
+        </style>
+
+        <div style="text-align:center;">
+            <h3>천천히 숨 쉬기</h3>
+            <div class="breath-circle"></div>
+            <p>원이 커질 때 들이마시고</p>
+            <p>작아질 때 내쉬어</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def show_calm_screen():
+    st.markdown(
+        """
+        <div style="padding:40px;text-align:center;background:#f5f5f5;border-radius:20px;">
+            <h2>괜찮아</h2>
+            <p>지금은 쉬어도 돼</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def emotion_card(emotion: str, intensity, state: str):
+    bg = get_bg_color(emotion)
+    text_color = "#222222"
+    return f"""
+    <div style="
+        background:{bg};
+        padding:24px;
+        border-radius:20px;
+        color:{text_color};
+        text-align:center;
+        box-shadow: 0px 10px 24px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.05);
+        margin-top: 12px;
+        margin-bottom: 12px;
+    ">
+        <h2 style="margin:0 0 8px 0;">{emotion}</h2>
+        <p style="font-size:17px; margin:0 0 6px 0;">강도 {intensity}</p>
+        <p style="font-size:15px; margin:0; color:#555;">현재 상태: {state}</p>
+    </div>
+    """
+
+
+def show_state_badge(emotion: str, state: str):
+    color = get_text_color(emotion)
+    st.markdown(
+        f"""
+        <div style="
+            padding:14px 16px;
+            border-radius:14px;
+            background:#ffffff;
+            border:1px solid #e9ecef;
+            text-align:center;
+            margin-top:10px;
+            margin-bottom:10px;
+        ">
+            <span style="font-size:15px; color:#666;">상태 분석</span><br>
+            <span style="font-size:20px; font-weight:700; color:{color};">{state}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def build_history_and_stats(logs: list[dict]):
+    if not logs:
+        return "", ""
+
+    recent = logs[-5:]
+    history = " → ".join(log["emotion"] for log in recent)
+
+    emotion_count = {}
+    for log in logs:
+        emo = log["emotion"]
+        emotion_count[emo] = emotion_count.get(emo, 0) + 1
+
+    stats = ", ".join(f"{k}: {v}회" for k, v in emotion_count.items())
+    return history, stats
+
+
+def render_time_chart(logs: list[dict]):
+    if not logs:
+        return
+
+    chart_logs = []
+    for log in logs:
+        if "time" not in log:
+            continue
+        chart_logs.append(
+            {
+                "time": pd.to_datetime(log["time"]),
+                "intensity_score": intensity_to_score(log.get("intensity", "보통")),
+            }
+        )
+
+    if not chart_logs:
+        return
+
+    df = pd.DataFrame(chart_logs).sort_values("time")
+    st.subheader("📈 감정 강도 흐름")
+    st.line_chart(df.set_index("time")["intensity_score"])
+
+
+def render_emotion_flow(logs: list[dict]):
+    if not logs:
+        return
+
+    recent = logs[-5:]
+    colored_flow = " → ".join(
+        [
+            f"<span style='color:{get_text_color(log['emotion'])}; font-weight:600;'>{log['emotion']}</span>"
+            for log in recent
+        ]
+    )
+
+    st.markdown(
+        f"""
+        <div style="
+            background: #fafafa;
+            padding:20px;
+            border-radius:15px;
+            border:1px solid #eeeeee;
+            margin-top:20px;
+        ">
+            <h4 style="margin-bottom:10px;">🧠 최근 감정 흐름</h4>
+            <p style="font-size:18px; text-align:center; margin:0;">
+                {colored_flow}
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def show_general_mode():
+    st.subheader("오늘 기분 기록하기")
+
+    user_input = st.text_area("오늘 기분을 적어줘", key="general_user_input")
+
+    if st.button("기록하기", key="general_save_btn"):
+        if not user_input.strip():
+            st.warning("조금만 적어줘 :)")
+            return
+
+        if any(word in user_input for word in DANGER_KEYWORDS):
+            st.warning("지금 많이 힘든 상태로 보여. 혼자 버티지 않아도 괜찮아.")
+            st.write("👉 109 / 1588-9191 / 1393 등 긴급 상담 도움을 바로 받아봐.")
+
+        emotion_result = analyze_emotion(user_input)
+        primary_emotion = emotion_result.get("primary_emotion", "모르겠음")
+        intensity = emotion_result.get("intensity", "보통")
+
+        current_log = {
+            "emotion": primary_emotion,
+            "intensity": intensity,
+            "time": datetime.now(),
+            "text": user_input,
+        }
+        st.session_state.logs.append(current_log)
+
+        try:
+            save_log(user_input, primary_emotion, intensity)
+        except Exception:
+            pass
+
+        history, stats = build_history_and_stats(st.session_state.logs)
+        response = generate_response(user_input, history, stats)
+        action = recommend_action(primary_emotion)
+        state = detect_state(st.session_state.logs)
+
+        st.markdown(emotion_card(primary_emotion, intensity, state), unsafe_allow_html=True)
+        show_state_badge(primary_emotion, state)
+
+        st.subheader("💬 공감")
+        st.write(response)
+
+        st.subheader("🌿 추천")
+        st.success(action)
+
+    if st.session_state.logs:
+        render_emotion_flow(st.session_state.logs)
+        render_time_chart(st.session_state.logs)
+
+        emotions = [log["emotion"] for log in st.session_state.logs]
+        most_common = max(set(emotions), key=emotions.count)
+        st.subheader("📌 최근 감정 패턴")
+        st.info(f"요즘 가장 많이 느끼는 감정은 **{most_common}** 이야")
+
+        recent = emotions[-3:]
+        if recent.count("불안") >= 2:
+            st.warning("요즘 불안한 상태가 계속 이어지고 있어 보여")
+
+
+def show_step_progress():
+    step = st.session_state.step
+    total = 5
+    st.markdown(
+        f"""
+        <div style="margin-bottom:20px;">
+            <div style="font-weight:600;">진행 단계: {step} / {total}</div>
+            <div style="
+                height:10px;
+                background:#eee;
+                border-radius:10px;
+                overflow:hidden;
+            ">
+                <div style="
+                    width:{(step / total) * 100}%;
+                    height:100%;
+                    background:#6c9cff;
+                "></div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def save_autism_mode_log_once():
+    if st.session_state.get("autism_result_saved", False):
+        return
+
+    log = {
+        "emotion": st.session_state.get("emotion", "모르겠음"),
+        "intensity": st.session_state.get("intensity", "보통"),
+        "sensory": st.session_state.get("sensory", "없음"),
+        "time": datetime.now(),
+        "text": st.session_state.get("user_text", ""),
+    }
+    st.session_state.logs.append(log)
+
+    try:
+        save_log(
+            st.session_state.get("user_text", ""),
+            st.session_state.get("emotion", "모르겠음"),
+            st.session_state.get("intensity", "보통"),
+        )
+    except Exception:
+        pass
+
+    st.session_state.autism_result_saved = True
+
+
+def reset_autism_mode():
+    st.session_state.step = 1
+    st.session_state.emotion = "모르겠음"
+    st.session_state.intensity = "보통"
+    st.session_state.sensory = "없음"
+    st.session_state.user_text = ""
+    st.session_state.choice = "진정"
+    st.session_state.autism_result_saved = False
+
+
+def show_autism_mode():
+    st.subheader("자폐 친화 모드")
+    show_step_progress()
+
+    if st.session_state.step == 1:
+        st.subheader("지금 상태를 골라줘")
+        st.selectbox(
+            "감정",
+            ["불안", "화남", "슬픔", "피곤함", "기쁨", "괜찮음", "모르겠음"],
+            key="emotion",
+        )
+        st.text_input("말하기 (선택)", key="user_text")
+
+        if st.button("다음", key="step1_next"):
+            st.session_state.step = 2
+            st.rerun()
+
+    elif st.session_state.step == 2:
+        user_text = st.session_state.get("user_text", "")
+        recommended_intensity = recommend_intensity(user_text)
+
+        intensity = st.radio(
+            "강도",
+            ["약함", "보통", "강함"],
+            index=["약함", "보통", "강함"].index(recommended_intensity) if recommended_intensity else 1,
+            key="intensity_radio",
+            horizontal=True,
+        )
+
+        if st.button("다음", key="step2_next"):
+            st.session_state.intensity = intensity
+            st.session_state.step = 3
+            st.rerun()
+
+    elif st.session_state.step == 3:
+        user_text = st.session_state.get("user_text", "")
+        recommended = recommend_from_text(user_text)
+
+        st.subheader("지금 뭐가 힘들어?")
+        if recommended:
+            st.info(f"👉 '{recommended}' 때문일 가능성이 있어")
+
+        sensory_options = ["소리", "빛", "복잡함", "말하기", "없음"]
+        sensory = st.selectbox(
+            "선택",
+            sensory_options,
+            index=sensory_options.index(recommended) if recommended in sensory_options else sensory_options.index("없음"),
+            key="sensory_select",
+        )
+
+        if st.button("다음", key="step3_next"):
+            st.session_state.sensory = sensory
+            st.session_state.step = 4
+            st.rerun()
+
+    elif st.session_state.step == 4:
+        st.subheader("어떤 도움을 받을래?")
+        choice = st.radio("선택", ["진정", "짧은 말", "조용한 화면"], key="choice_radio", horizontal=True)
+
+        if st.button("시작", key="step4_start"):
+            st.session_state.choice = choice
+            st.session_state.step = 5
+            st.session_state.autism_result_saved = False
+            st.rerun()
+
+    elif st.session_state.step == 5:
+        emotion = st.session_state.get("emotion", "모르겠음")
+        intensity = st.session_state.get("intensity", "보통")
+        bg_color = get_bg_color(emotion)
+
+        st.markdown(
+            f"""
+            <div style="
+                padding:20px;
+                border-radius:16px;
+                background:{bg_color};
+                margin-bottom:15px;
+                border:1px solid rgba(0,0,0,0.05);
+            ">
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.subheader("결과")
+
+        if st.session_state.choice == "진정":
+            show_breathing_box()
+
+        elif st.session_state.choice == "짧은 말":
+            user_input = f"""
+감정: {emotion}
+강도: {intensity}
+감각: {st.session_state.get("sensory", "없음")}
+추가 입력: {st.session_state.get("user_text", "")}
+            """.strip()
+
+            response = generate_response(
+                user_input=user_input,
+                emotion=emotion,
+                mode="자폐 친화 모드",
+            )
+            st.write(response)
+
+        elif st.session_state.choice == "조용한 화면":
+            show_calm_screen()
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        current_log = {
+            "emotion": emotion,
+            "intensity": intensity,
+            "time": datetime.now(),
+            "text": st.session_state.get("user_text", ""),
+        }
+        preview_state = detect_state(st.session_state.logs + [current_log])
+
+        st.markdown(emotion_card(emotion, intensity, preview_state), unsafe_allow_html=True)
+        show_state_badge(emotion, preview_state)
+
+        save_autism_mode_log_once()
+
+        if st.button("다시 시작", key="autism_restart"):
+            reset_autism_mode()
+            st.rerun()
+
+    if st.session_state.logs:
+        render_emotion_flow(st.session_state.logs)
+        render_time_chart(st.session_state.logs)
+
+
+# ---------------------------------
+# 세션 상태 초기화
+# ---------------------------------
 if "mode" not in st.session_state:
     st.session_state.mode = "일반 모드"
 
 if "logs" not in st.session_state:
     st.session_state.logs = []
- 
+
 if "step" not in st.session_state:
     st.session_state.step = 1
 
@@ -32,416 +533,52 @@ if "intensity" not in st.session_state:
 if "sensory" not in st.session_state:
     st.session_state.sensory = "없음"
 
-def recommend_intensity(text):
-    if not text:
-        return None
+if "user_text" not in st.session_state:
+    st.session_state.user_text = ""
 
-    if any(word in text for word in ["너무", "진짜", "완전", "미치겠"]):
-        return "강함"
-    elif any(word in text for word in ["조금", "약간"]):
-        return "약함"
+if "choice" not in st.session_state:
+    st.session_state.choice = "진정"
 
-    return "보통"
+if "autism_result_saved" not in st.session_state:
+    st.session_state.autism_result_saved = False
 
-def get_emotion_color(emotion):
-    colors = {
-        "불안": "#d4edda",
-        "화남": "#cce5ff",
-        "슬픔": "#e2e3e5",
-        "피곤함": "#f8f9fa",
-        "기쁨": "#fff3cd",
-        "괜찮음": "#d1ecf1",
-        "모르겠음": "#eeeeee"
-    }
-    return colors.get(emotion, "#ffffff")
-
-def recommend_from_text(text):
-    if not text:
-        return None
-
-    if any(word in text for word in ["시끄러", "소리", "떠들", "소음"]):
-        return "소리"
-    elif any(word in text for word in ["밝", "눈부", "빛"]):
-        return "빛"
-    elif any(word in text for word in ["복잡", "생각 많", "머리 아픔"]):
-        return "복잡함"
-    elif any(word in text for word in ["말하기", "대화", "대답"]):
-        return "말하기"
-
-    return None
-
-def get_calm_actions(emotion):
-    action_map = {
-        "불안": ["숨 쉬기", "잠깐 쉬기"],
-        "슬픔": ["조용히 있기", "따뜻한 말 보기"],
-        "화남": ["잠깐 멈추기", "감정 다시 고르기"],
-        "피곤함": ["눈 쉬기", "물 마시기"],
-        "기쁨": ["기록 남기기", "좋은 이유 적기"],
-        "괜찮음": ["지금 상태 유지하기", "감정 기록하기"],
-        "모르겠음": ["천천히 생각하기", "다시 고르기"]
-    }
-    return action_map.get(emotion, ["잠깐 쉬기", "다시 해보기"])
-
-def show_breathing_box():
-    st.markdown("""
-    <style>
-    .breath-circle {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        background-color: #a8e6cf;
-        margin: 20px auto;
-        animation: breathe 4s infinite;
-    }
-
-    @keyframes breathe {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.5); }
-        100% { transform: scale(1); }
-    }
-    </style>
-
-    <div style="text-align:center;">
-        <h3>천천히 숨 쉬기</h3>
-        <div class="breath-circle"></div>
-        <p>원이 커질 때 들이마시고</p>
-        <p>작아질 때 내쉬어</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-def show_calm_screen():
-    st.markdown("""
-    <div style="padding:40px;text-align:center;background:#f5f5f5;border-radius:20px;">
-        <h2>괜찮아</h2>
-        <p>지금은 쉬어도 돼</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-def emotion_card(emotion, intensity, color):
-    return f"""
-    <div style="
-        background: linear-gradient(135deg, {color}, #000000);
-        padding:25px;
-        border-radius:20px;
-        color:white;
-        text-align:center;
-        box-shadow: 0px 10px 30px rgba(0,0,0,0.3);
-    ">
-        <h2>{emotion}</h2>
-        <p style="font-size:18px;">강도 {intensity}</p>
-    </div>
+# ---------------------------------
+# 스타일
+# ---------------------------------
+st.markdown(
     """
-
-st.markdown("""
-<style>
-.block-container {
-    padding-top: 3rem;
-}
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
     <style>
+    .block-container {
+        padding-top: 2.2rem;
+        padding-bottom: 2rem;
+        max-width: 760px;
+    }
     button[kind="primary"] {
         background-color: black;
         color: white;
         border-radius: 10px;
-        height: 50px;
+        height: 48px;
         font-size: 16px;
     }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True,
+)
 
+# ---------------------------------
+# 상단 UI
+# ---------------------------------
 st.title("정서로")
 st.caption("감정을 기록하고, 이해하고, 천천히 정리하는 공간")
-st.set_page_config(page_title="정서로", page_icon="🫧", layout="centered")
-def show_step_progress():
-    step = st.session_state.step
-    total = 5
-
-    st.markdown(f"""
-    <div style="margin-bottom:20px;">
-        <div style="font-weight:600;">진행 단계: {step} / {total}</div>
-        <div style="
-            height:10px;
-            background:#eee;
-            border-radius:10px;
-            overflow:hidden;
-        ">
-            <div style="
-                width:{(step/total)*100}%;
-                height:100%;
-                background:#6c9cff;
-            "></div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
 
 st.subheader("모드 선택")
-
-# ---------------------------
-# 모드 선택
-# ---------------------------
-mode = st.radio("모드 선택", ["일반 모드", "자폐 친화 모드"])
+mode = st.radio("모드 선택", ["일반 모드", "자폐 친화 모드"], horizontal=True)
 st.session_state.mode = mode
 
-
-# ===========================
-# 🔵 일반 모드
-# ===========================
+# ---------------------------------
+# 본문
+# ---------------------------------
 if st.session_state.mode == "일반 모드":
-
-    user_input = st.text_area("오늘 기분을 적어줘")
-    if st.button("분석하기"):
-        danger_keywords = ["죽고싶", "자살", "사라지고싶", "힘들다", "끝내고싶다"]
-
-        user_input = st.session_state.get("user_text", "") or st.session_state.get("emotion", "")
-
-        if any(word in user_input for word in danger_keywords):
-            st.warning("지금 많이 힘든 상태로 보여. 혼자 버티지 않아도 괜찮아.")
-            st.write("👉 1393 자살 예방 상담 전화")
-
-        if user_input.strip() == "":
-            st.warning("조금만 적어줘 :)")
-        else:
-            emotion = analyze_emotion(user_input)
-            logs = load_logs()
-
-            history = ""
-            stats = ""
-
-            if "logs" not in st.session_state:
-                st.session_state.logs = []
-
-            if len(st.session_state.logs) > 0:
-                recent = st.session_state.logs[-5:]
-                history = " → ".join([log["emotion"] for log in recent])
-
-                emotion_count = {}
-                for log in st.session_state.logs:
-                    emo = log["emotion"]
-                    emotion_count[emo] = emotion_count.get(emo, 0) + 1
-
-                stats = ", ".join([f"{k}: {v}회" for k, v in emotion_count.items()])
-            response = generate_response(user_input, history, stats)
-            action = recommend_action(emotion["primary_emotion"])
-            signal = robot_signal(
-                emotion["primary_emotion"],
-                emotion["intensity"]
-            )
-
-            st.write("🤖 로봇 반응:", signal)
-        
-#저장        
-            save_log(user_input, emotion["primary_emotion"], emotion["intensity"])
-
-            st.divider()
-
-       
-#감정카드 
-        color = get_emotion_color(emotion["primary_emotion"])
-
-        st.markdown(emotion_card(
-        emotion["primary_emotion"],
-        emotion["intensity"],
-        color
-    ), unsafe_allow_html=True)
-    
-        if st.session_state.mode == "calm":
-            st.markdown(f"""
-            <div style='padding:16px; border-radius:12px; border:1px solid #ccc; background-color:#f7f7f7;'>
-                <b>최근 감정 흐름</b><br>
-                {' → '.join(emotion)}
-            </div>
-            """, unsafe_allow_html=True)   
-
-
-# 공감
-        st.subheader("💬 공감")
-        st.write(response)
-
- # 행동
-        st.subheader("🌿 추천")
-        st.success(action)
-
-# 그래프
-        logs = load_logs()
-
-        if logs:
-            recent = logs[-5:]
-            emotions = [e[0] for e in recent]
-
-            colored_flow = " → ".join([
-                f"<span style='color:{get_emotion_color(e)}'>{e}</span>"
-                for e in emotions
-             ])
-
-            st.markdown(f"""
-            <div style="
-                background: rgba(255,255,255,0.08);
-                padding:20px;
-                border-radius:15px;
-                border:1px solid rgba(255,255,255,0.2);
-                backdrop-filter: blur(10px);
-                margin-top:20px;
-            ">
-                <h4 style="margin-bottom:10px;">🧠 감정 흐름</h4>
-                <p style="font-size:18px; text-align:center;">
-                    {colored_flow}
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
-
-        if logs:
-            df = pd.DataFrame(logs, columns=["emotion", "intensity"])
-            df["score"] = df["emotion"].apply(emotion_score)
-
-            st.subheader("📊 감정 흐름 그래프")
-            st.line_chart(df["score"])   
-
-        if logs:
-            emotions = [e[0] for e in logs]
-   
-            most_common = max(set(emotions), key=emotions.count)
-            st.subheader("📌 최근 감정 패턴")
-            st.info(f"요즘 가장 많이 느끼는 감정은 **{most_common}** 이야")
-
-        if len(logs) >= 3:
-            recent = [e[0] for e in logs[-3:]]
-
-        if recent.count("불안") >= 2:
-            st.warning("요즘 불안한 상태가 계속 이어지고 있어 보여")
-   
-         
-
-        
-
-# ===========================
-# 🟢 자폐 친화 모드 (핵심🔥)
-# ===========================
+    show_general_mode()
 else:
-
-    # 1단계: 감정
-    if st.session_state.step == 1:
-       st.subheader("지금 상태를 골라줘")
-
-       st.selectbox(
-            "감정",
-            ["불안", "화남", "슬픔", "피곤함", "기쁨", "괜찮음", "모르겠음"],
-            key="emotion"
-        )
-
-       st.text_input("말하기 (선택)", key="user_text")
-
-       if st.button("다음", key="nextlevel1"):
-           st.session_state.step = 2      
-
-    # 2단계: 강도
-    elif st.session_state.step == 2:
-
-        user_text = st.session_state.get("user_text", "")
-
-        recommended_intensity = recommend_intensity(user_text)
-
-        intensity = st.radio(
-            "강도",
-            ["약함", "보통", "강함"],
-            index=["약함", "보통", "강함"].index(recommended_intensity) if recommended_intensity else 1,
-            key="intensity_radio"
-        )
-
-        if st.button("다음", key="step2_next"):
-            st.session_state.intensity = intensity
-            st.session_state.step = 3
-
-
-
-    # 3단계: 감각 상태
-    elif st.session_state.step == 3:
-
-        user_text = st.session_state.get("user_text", "")
-        recommended = recommend_from_text(user_text)
-
-        st.subheader("지금 뭐가 힘들어?")
-
-        if recommended:
-            st.info(f"👉 '{recommended}' 때문일 가능성이 있어")
-
-        sensory = st.selectbox(
-            "선택",
-            ["소리", "빛", "복잡함", "말하기", "없음"],
-            index=["소리", "빛", "복잡함", "말하기", "없음"].index(recommended) if recommended else 0,
-            key="sensory_select"
-        )
-
-    # 🔥 여기 추가 (핵심)
-        if st.button("다음", key="step3_next"):
-            st.session_state.sensory = sensory
-            st.session_state.step = 4
-        
-
-    # 4단계: 도움 선택
-    elif st.session_state.step == 4:
-        st.subheader("어떤 도움을 받을래?")
-
-        choice = st.radio("선택", [
-            "진정", "짧은 말", "조용한 화면"
-        ])
-
-        if st.button("시작"):
-            st.session_state.choice = choice
-            st.session_state.step = 5
-
-
-    # 5단계: 결과
-    elif st.session_state.step == 5:
-
-        emotion = st.session_state.get("emotion", "모르겠음")
-        bg_color = get_emotion_color(emotion)
-
-        st.markdown(f"""
-        <div style="
-            padding:20px;
-            border-radius:16px;
-            background:{bg_color};
-            margin-bottom:15px;
-        ">
-        """, unsafe_allow_html=True)
-
-        st.subheader("결과")
-
-        if st.session_state.choice == "진정":
-            show_breathing_box()
-
-        elif st.session_state.choice == "짧은 말":
-
-            user_input = f"""
-            감정: {st.session_state.emotion}
-            강도: {st.session_state.intensity}
-            감각: {st.session_state.sensory}
-            추가 입력: {st.session_state.user_text}
-            """
-
-            response = generate_response(
-               user_input=user_input,
-               emotion=st.session_state.emotion,
-               mode="자폐 친화 모드"
-            )
-
-            st.write(response)
-
-        elif st.session_state.choice == "조용한 화면":
-            show_calm_screen()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        # 기록 저장
-        st.session_state.logs.append({
-            "emotion": st.session_state.get("emotion", "모르겠음"),
-            "intensity": st.session_state.get("intensity", "보통"),
-            "sensory": st.session_state.get("sensory", "없음")
-        })
-        
-
-        if st.button("다시 시작"):
-            st.session_state.step = 1
-
+    show_autism_mode()
