@@ -452,8 +452,9 @@ def show_autism_mode():
         st.text_input("말하기 (선택)", key="user_text")
 
         if st.button("다음", key="step1_next"):
-            st.session_state.step = 2
-            st.rerun()
+           st.session_state.emotion = st.session_state.get("emotion")  # 🔥 강제 저장
+           st.session_state.step = 2
+           st.rerun()
 
     elif st.session_state.step == 2:
         user_text = st.session_state.get("user_text", "")
@@ -504,6 +505,7 @@ def show_autism_mode():
             st.rerun()
 
     elif st.session_state.step == 5:
+        st.write("DEBUG emotion:", st.session_state.get("emotion"))
         emotion = st.session_state.get("emotion")
         if not emotion:
             emotion = "모르겠음"
