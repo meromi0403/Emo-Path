@@ -24,38 +24,35 @@ def fallback_response(emotion):
 # ---------------------------------
 # 메인 응답 함수
 # ---------------------------------
-def generate_response(user_input, chat_history=None, emotion=None):
-
-    if not os.getenv("OPENAI_API_KEY"):
-        return fallback_response(emotion or "모르겠음")
+def generate_response(user_input, chat_history=None, emotion=None, mode="일반 모드"):
 
     messages = []
 
-    # 시스템 역할 (중요 🔥)
-    messages.append({
+    if chat_history:
+        messages.extend(chat_history)
+
+    # 🔥 감정 기반 시스템 프롬프트
+    system_prompt = f"""
+너는 감정을 공감해주는 AI다.
+현재 사용자 감정: {emotion}
+
+- 너무 길게 말하지 마
+- 자연스럽게 공감해
+"""
+
+    messages.insert(0, {
         "role": "system",
-        "content": "너는 감정을 이해하고 공감하는 AI다. 해결책보다 공감을 우선한다."
+        "content": system_prompt
     })
 
-    # 이전 대화 추가
-    if chat_history:
-        messages.extend(chat_history[-5:])  # 최근 5개만
-
-    # 현재 입력
     messages.append({
         "role": "user",
         "content": user_input
     })
 
-    try:
-        res = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages
-        )
+    res = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages
+    )
 
-        reply = res.choices[0].message.content.strip()
-
-        return reply
-
-    except Exception:
-        return fallback_response(emotion or "모르겠음")
+    return res.choices[0].message.content
