@@ -1,53 +1,77 @@
+import os
 import json
 from openai import OpenAI
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-client = OpenAI(api_key=os.getenv("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"))
+# ---------------------------------
+# OpenAI client
+# ---------------------------------
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# ---------------------------------
+# 기본 fallback
+# ---------------------------------
+def fallback_emotion(text):
+    text = text.lower()
+
+    if any(word in text for word in ["불안", "걱정", "긴장"]):
+        return {"primary_emotion": "불안", "intensity": "보통"}
+
+    if any(word in text for word in ["슬프", "우울", "눈물"]):
+        return {"primary_emotion": "슬픔", "intensity": "보통"}
+
+    if any(word in text for word in ["화나", "짜증", "분노"]):
+        return {"primary_emotion": "화남", "intensity": "보통"}
+
+    if any(word in text for word in ["좋아", "행복", "기쁘"]):
+        return {"primary_emotion": "기쁨", "intensity": "보통"}
+
+    return {"primary_emotion": "모르겠음", "intensity": "보통"}
+
+
+# ---------------------------------
+# 메인 분석 함수
+# ---------------------------------
 def analyze_emotion(text):
+
+    # 1. API 키 없으면 fallback
+    if not os.getenv("OPENAI_API_KEY"):
+        return fallback_emotion(text)
+
     prompt = f"""
-    너는 감정을 매우 세밀하게 분석하는 전문가다.
+다음 문장을 읽고 감정을 분석하세요.
 
-    다음 문장을 분석해서 반드시 JSON으로만 답해.
-    설명은 절대 하지 마.
+반드시 JSON 형식으로만 답하세요.
 
-    감정은 최대한 다양하고 구체적으로 표현해라.
+형식:
+{{
+    "primary_emotion": "불안/슬픔/화남/기쁨/피곤함/괜찮음/모르겠음",
+    "intensity": "약함/보통/강함"
+}}
 
-    반드시 JSON만 반환해. 설명 절대 금지.
-
-    예시 감정:
-    - 불안, 초조, 긴장, 압박감
-    - 우울, 무기력, 공허함, 외로움
-    - 분노, 짜증, 답답함, 억울함
-    - 행복, 설렘, 안정감, 만족감
-
-    형식:
-    {{
-    "primary_emotion": "",
-    "secondary_emotion": "",
-    "intensity": 0,
-    "keywords": []
-    }}
-
-    문장: "{text}"
-    """
-
-    res = client.chat.completions.create(
-    model="gpt-4o-mini",
-    response_format={"type": "json_object"},  # ⭐ 여기!
-    messages=[{"role": "user", "content": prompt}]
-)
-    
-    content = res.choices[0].message.content
+문장:
+{text}
+"""
 
     try:
-        return json.loads(content)
-    except:
-        return {
-            "primary_emotion": "알 수 없음",
-            "secondary_emotion": "",
-            "intensity": 0,
-            "keywords": []
-        }
+        res = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        content = res.choices[0].message.content
+
+        # JSON 파싱 시도
+        try:
+            result = json.loads(content)
+            return result
+
+        except:
+            # JSON 깨졌으면 fallback
+            return fallback_emotion(text)
+
+    except Exception as e:
+        # API 에러 → fallback
+        print("OpenAI error:", e)
+        return fallback_emotion(text)
