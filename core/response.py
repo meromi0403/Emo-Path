@@ -26,33 +26,68 @@ def fallback_response(emotion):
 # ---------------------------------
 def generate_response(user_input, chat_history=None, emotion=None, mode="일반 모드"):
 
+    # 🔥 API 키 없으면 fallback
+    if not os.getenv("OPENAI_API_KEY"):
+        return fallback_response(emotion)
+
     messages = []
 
-    if chat_history:
-        messages.extend(chat_history)
-
-    # 🔥 감정 기반 시스템 프롬프트
+    # 🔥 system 프롬프트 (핵심)
     system_prompt = f"""
 너는 감정을 공감해주는 AI다.
-현재 사용자 감정: {emotion}
 
+현재 사용자 감정: {emotion}
+모드: {mode}
+
+규칙:
+- 공감 중심으로 말해
 - 너무 길게 말하지 마
-- 자연스럽게 공감해
+- 부드럽고 안정적으로 말해
 """
 
-    messages.insert(0, {
+    messages.append({
         "role": "system",
         "content": system_prompt
     })
 
+    # 🔥 기존 대화 추가
+    if chat_history:
+        messages.extend(chat_history)
+
+    # 🔥 현재 입력 추가
     messages.append({
         "role": "user",
         "content": user_input
     })
 
-    res = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=messages
-    )
+    # 🔥 메시지 정리 (에러 방지 핵심)
+    clean_messages = []
+    for msg in messages:
+        if (
+            isinstance(msg, dict)
+            and "role" in msg
+            and "content" in msg
+            and msg["content"] is not None
+        ):
+            clean_messages.append({
+                "role": msg["role"],
+                "content": str(msg["content"])
+            })
 
-    return res.choices[0].message.content
+    try:
+        res = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=clean_messages
+        )
+
+        content = res.choices[0].message.content
+
+        # 🔥 None 방지
+        if content is None:
+            return fallback_response(emotion)
+
+        return content
+
+    except Exception as e:
+        print("OpenAI error:", e)
+        return fallback_response(emotion)
