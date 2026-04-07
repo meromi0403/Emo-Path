@@ -505,6 +505,9 @@ def show_autism_mode():
 
     elif st.session_state.step == 5:
         emotion = st.session_state.get("emotion", "모르겠음")
+        if not emotion:
+            emotion = "모르겠음"
+
         intensity = st.session_state.get("intensity", "보통")
         secondary_emotion = "선택 기반"
         cause = st.session_state.get("sensory", "없음")
@@ -536,17 +539,18 @@ def show_autism_mode():
 추가 입력: {st.session_state.get("user_text", "")}
             """.strip()
 
+            
+            st.session_state.chat_history.append({
+                "role": "user",
+                "content": user_input
+            })
+
             response = generate_response(
                 user_input=user_input,
                 chat_history=st.session_state.chat_history[-3:],
                 emotion=emotion,
                 mode="자폐 친화 모드",
             )
-            st.session_state.chat_history.append({
-                "role": "user",
-                "content": user_input
-            })
-
 
             st.session_state.chat_history.append({
                 "role": "assistant",
