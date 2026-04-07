@@ -355,7 +355,7 @@ def show_general_mode():
 
         st.session_state.chat_history.append({
             "role": "assistant",
-            "content": response
+            "content": str(response)
         })
         st.subheader("💬 공감")
         st.write(response)
@@ -504,7 +504,7 @@ def show_autism_mode():
             st.rerun()
 
     elif st.session_state.step == 5:
-        emotion = st.session_state.get("emotion", "모르겠음")
+        emotion = st.session_state.get("emotion")
         if not emotion:
             emotion = "모르겠음"
 
@@ -554,7 +554,7 @@ def show_autism_mode():
 
             st.session_state.chat_history.append({
                 "role": "assistant",
-                "content": response
+                "content": str(response)
             })
 
             st.write(response)
