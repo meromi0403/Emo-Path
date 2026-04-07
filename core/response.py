@@ -24,46 +24,38 @@ def fallback_response(emotion):
 # ---------------------------------
 # 메인 응답 함수
 # ---------------------------------
-def generate_response(user_input, history="", stats="", emotion=None, mode="일반 모드"):
+def generate_response(user_input, chat_history=None, emotion=None):
 
-    # API 키 없으면 fallback
     if not os.getenv("OPENAI_API_KEY"):
         return fallback_response(emotion or "모르겠음")
 
-    prompt = f"""
-너는 사용자의 감정을 이해하고 공감하는 시스템이다.
+    messages = []
 
-조건:
-- 너무 길지 않게
-- 해결책보다 공감 중심
-- 부드럽고 자연스럽게
+    # 시스템 역할 (중요 🔥)
+    messages.append({
+        "role": "system",
+        "content": "너는 감정을 이해하고 공감하는 AI다. 해결책보다 공감을 우선한다."
+    })
 
-사용자 입력:
-{user_input}
+    # 이전 대화 추가
+    if chat_history:
+        messages.extend(chat_history[-5:])  # 최근 5개만
 
-최근 감정 흐름:
-{history}
-
-감정 통계:
-{stats}
-
-현재 감정:
-{emotion}
-
-모드:
-{mode}
-"""
+    # 현재 입력
+    messages.append({
+        "role": "user",
+        "content": user_input
+    })
 
     try:
         res = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            messages=messages
         )
 
-        return res.choices[0].message.content.strip()
+        reply = res.choices[0].message.content.strip()
 
-    except Exception as e:
-        print("OpenAI error:", e)
+        return reply
+
+    except Exception:
         return fallback_response(emotion or "모르겠음")

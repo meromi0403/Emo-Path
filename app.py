@@ -273,6 +273,11 @@ def show_general_mode():
         if not user_input.strip():
             st.warning("조금만 적어줘 :)")
             return
+        
+        st.session_state.chat_history.append({
+            "role": "assistant",
+            "content": response
+        })
 
         if any(word in user_input for word in DANGER_KEYWORDS):
             st.warning("지금 많이 힘든 상태로 보여. 혼자 버티지 않아도 괜찮아.")
@@ -296,7 +301,11 @@ def show_general_mode():
             pass
 
         history, stats = build_history_and_stats(st.session_state.logs)
-        response = generate_response(user_input, history, stats)
+        response = generate_response(
+            user_input=user_input,
+            chat_history=st.session_state.chat_history,
+            emotion=primary_emotion
+        )
         action = recommend_action(primary_emotion)
         state = detect_state(st.session_state.logs)
         # 상태 기반 UI 변화
@@ -310,7 +319,7 @@ def show_general_mode():
             """, unsafe_allow_html=True)
             st.warning("지금 불안이 계속 쌓이고 있어요. 잠깐 쉬는 게 좋아요.")
             st.write("👉 입력을 줄이고 간단한 선택을 추천해요")
-            
+
         elif state == "감정 변동 상태":
             st.markdown("""
                 <style>
@@ -552,6 +561,9 @@ if "mode" not in st.session_state:
 
 if "logs" not in st.session_state:
     st.session_state.logs = []
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []  
 
 if "step" not in st.session_state:
     st.session_state.step = 1
