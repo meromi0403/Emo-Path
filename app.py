@@ -275,7 +275,7 @@ def show_general_mode():
             return
         
         st.session_state.chat_history.append({
-            "role": "assistant",
+            "role": "user",
             "content": user_input
         })
 
@@ -284,11 +284,16 @@ def show_general_mode():
             st.write("👉 109 / 1588-9191 / 1393 등 긴급 상담 도움을 바로 받아봐.")
 
         emotion_result = analyze_emotion(user_input)
+
         primary_emotion = emotion_result.get("primary_emotion", "모르겠음")
+        secondary_emotion = emotion_result.get("secondary_emotion", "")
+        cause = emotion_result.get("cause", "")
         intensity = emotion_result.get("intensity", "보통")
 
         current_log = {
             "emotion": primary_emotion,
+            "secondary": secondary_emotion,
+            "cause": cause,
             "intensity": intensity,
             "time": datetime.now(),
             "text": user_input,
@@ -342,9 +347,14 @@ def show_general_mode():
 
         st.markdown(emotion_card(primary_emotion, intensity, state), unsafe_allow_html=True)
         show_state_badge(primary_emotion, state)
+       
+        if secondary_emotion or cause:
+            st.caption(f"{secondary_emotion} • 원인: {cause}")
+        
+        
 
         st.session_state.chat_history.append({
-            "role": "assistant",
+            "role": "user",
             "content": response
         })
         st.subheader("💬 공감")
@@ -398,8 +408,9 @@ def save_autism_mode_log_once():
 
     log = {
         "emotion": st.session_state.get("emotion", "모르겠음"),
+        "secondary": "선택 기반",
+        "cause": st.session_state.get("sensory", "없음"),
         "intensity": st.session_state.get("intensity", "보통"),
-        "sensory": st.session_state.get("sensory", "없음"),
         "time": datetime.now(),
         "text": st.session_state.get("user_text", ""),
     }
@@ -495,6 +506,8 @@ def show_autism_mode():
     elif st.session_state.step == 5:
         emotion = st.session_state.get("emotion", "모르겠음")
         intensity = st.session_state.get("intensity", "보통")
+        secondary_emotion = "선택 기반"
+        cause = st.session_state.get("sensory", "없음")
         bg_color = get_bg_color(emotion)
 
         st.markdown(
@@ -525,6 +538,7 @@ def show_autism_mode():
 
             response = generate_response(
                 user_input=user_input,
+                chat_history=st.session_state.chat_history[-3:],
                 emotion=emotion,
                 mode="자폐 친화 모드",
             )
@@ -535,7 +549,7 @@ def show_autism_mode():
 
 
             st.session_state.chat_history.append({
-                "role": "assistant",
+                "role": "user",
                 "content": response
             })
 
@@ -556,7 +570,7 @@ def show_autism_mode():
 
         st.markdown(emotion_card(emotion, intensity, preview_state), unsafe_allow_html=True)
         show_state_badge(emotion, preview_state)
-
+        st.caption(f"{secondary_emotion} • 원인: {cause}")
         save_autism_mode_log_once()
 
         if st.button("다시 시작", key="autism_restart"):
