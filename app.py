@@ -276,7 +276,7 @@ def show_general_mode():
         
         st.session_state.chat_history.append({
             "role": "assistant",
-            "content": response
+            "content": user_input
         })
 
         if any(word in user_input for word in DANGER_KEYWORDS):
@@ -343,6 +343,10 @@ def show_general_mode():
         st.markdown(emotion_card(primary_emotion, intensity, state), unsafe_allow_html=True)
         show_state_badge(primary_emotion, state)
 
+        st.session_state.chat_history.append({
+            "role": "assistant",
+            "content": response
+        })
         st.subheader("💬 공감")
         st.write(response)
 
@@ -524,6 +528,17 @@ def show_autism_mode():
                 emotion=emotion,
                 mode="자폐 친화 모드",
             )
+            st.session_state.chat_history.append({
+                "role": "user",
+                "content": user_input
+            })
+
+
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": response
+            })
+
             st.write(response)
 
         elif st.session_state.choice == "조용한 화면":
