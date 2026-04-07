@@ -354,7 +354,7 @@ def show_general_mode():
         
 
         st.session_state.chat_history.append({
-            "role": "user",
+            "role": "assistant",
             "content": response
         })
         st.subheader("💬 공감")
