@@ -49,6 +49,25 @@ EMOTION_SCORE_MAP = {
 
 DANGER_KEYWORDS = ["죽고싶", "자살", "사라지고싶", "끝내고싶", "없어지고싶"]
 
+def detect_state(logs):
+    recent = logs[-5:]
+
+    emotions = [l["emotion"] for l in recent]
+
+    if emotions.count("불안") >= 3:
+        return "긴장 상태"
+
+    if emotions.count("슬픔") >= 3:
+        return "우울 상태"
+
+    if len(set(emotions)) >= 3:
+        return "감정 불안정 상태"
+
+    if emotions.count("기쁨") >= 3:
+        return "안정 상태"
+
+    return "일반 상태"
+
 
 def get_bg_color(emotion: str) -> str:
     return EMOTION_BG_COLORS.get(emotion, "#ffffff")
@@ -61,6 +80,24 @@ def get_text_color(emotion: str) -> str:
 def intensity_to_score(value):
     return EMOTION_SCORE_MAP.get(value, 2)
 
+def detect_state(logs):
+    recent = logs[-5:]
+
+    emotions = [l["emotion"] for l in recent]
+
+    if emotions.count("불안") >= 3:
+        return "긴장 상태"
+
+    if emotions.count("슬픔") >= 3:
+        return "우울 상태"
+
+    if len(set(emotions)) >= 3:
+        return "감정 불안정 상태"
+
+    if emotions.count("기쁨") >= 3:
+        return "안정 상태"
+
+    return "일반 상태"
 
 def detect_state(logs: list[dict]) -> str:
     if len(logs) < 3:
@@ -416,6 +453,21 @@ def save_autism_mode_log_once():
     }
     st.session_state.logs.append(log)
 
+    state = detect_state(st.session_state.logs)
+
+
+    if state == "긴장 상태":
+        st.warning("지금 긴장이 지속되고 있어요")
+
+    elif state == "우울 상태":
+        st.info("마음이 많이 가라앉은 상태입니다")
+
+    elif state == "감정 불안정 상태":
+        st.error("감정 변화가 크게 나타나고 있어요")
+
+    elif state == "안정 상태":
+        st.success("현재 안정된 상태입니다")
+
     try:
         save_log(
             st.session_state.get("user_text", ""),
@@ -507,6 +559,12 @@ def show_autism_mode():
 
     elif st.session_state.step == 5:
        
+       
+
+        st.subheader("감정 흐름")
+
+        st.line_chart(df.set_index("time")["emotion"])
+
         emotion = st.session_state.get("emotion")
         if not emotion:
             emotion = "모르겠음"
@@ -587,6 +645,9 @@ def show_autism_mode():
     if st.session_state.logs:
         render_emotion_flow(st.session_state.logs)
         render_time_chart(st.session_state.logs)
+
+    if len(st.session_state.logs) > 1:
+           df = pd.DataFrame(st.session_state.logs)
 
 
 # ---------------------------------
