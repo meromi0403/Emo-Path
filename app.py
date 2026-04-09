@@ -12,25 +12,33 @@ if "page" not in st.session_state:
     
 import time
 
-if st.button("시작하기", key="start_button"):
-    with st.spinner("넘어가는 중..."):
-        time.sleep(0.6)
-        st.session_state.page = "meaning"
-        st.rerun()
+st.markdown("""
+<div style="height: 200px;"></div>
+""", unsafe_allow_html=True)
+
         
 def show_intro():
-    st.markdown('<div class="fade">', unsafe_allow_html=True)
+    
+    st.title("정서로")
+    st.caption("감정을 기록하고, 이해하고, 천천히 정리하는 공간")
+
     st.image("assets/start.png", use_container_width=True)
 
-    if st.button("시작하기", key="intro_start"):
-        st.session_state.page = "meaning"
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        if st.button("시작하기", key="intro_start"):
+            st.session_state.page = "meaning"
+            st.rerun()
+    
 # ---------------------------------
 # 기본 설정
 # ---------------------------------
 st.set_page_config(page_title="정서로", page_icon="🫧", layout="centered")
 init_db()
+
+# ---------------------------------
+# 상단 UI
+# ---------------------------------
 
 st.markdown("""
 <style>
@@ -42,6 +50,20 @@ st.markdown("""
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+#MainMenu {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -102,7 +124,7 @@ def detectss_state(logs):
 
 
 def show_meaning():
-    st.markdown('<div class="fade">', unsafe_allow_html=True)
+
     st.title("정서로 의미")
 
     st.markdown("""
@@ -117,10 +139,10 @@ def show_meaning():
     if st.button("다음"):
         st.session_state.page = "guide"
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+   
 
 def show_guide():
-    st.markdown('<div class="fade">', unsafe_allow_html=True)
+    
     st.title("사용 방법")
 
     st.markdown("""
@@ -133,12 +155,12 @@ def show_guide():
     """)
 
     if st.button("시작"):
-        st.session_state.page = "main"
+        st.session_state.page = "mode"   # ✅ 이걸로 바꿔
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    
 
 def show_mode_select():
-    st.markdown('<div class="fade">', unsafe_allow_html=True)
+    
     st.title("모드 선택")
 
     st.markdown("""
@@ -150,12 +172,11 @@ def show_mode_select():
 
     mode = st.radio("선택", ["일반 모드", "자폐 친화 모드"], key="mode_select")
 
-    if st.button("시작"):
+    if st.button("시작", "mode_start_btn"):
         st.session_state.mode = mode
         st.session_state.page = "main"
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
+    
 def get_bg_color(emotion: str) -> str:
     return EMOTION_BG_COLORS.get(emotion, "#ffffff")
 
@@ -185,6 +206,7 @@ def detects_state(logs):
         return "안정 상태"
 
     return "일반 상태"
+
 
 def detect_state(logs: list[dict]) -> str:
     if len(logs) < 3:
@@ -389,7 +411,7 @@ def render_emotion_flow(logs: list[dict]):
 
 
 def show_general_mode():
-    st.markdown('<div class="fade">', unsafe_allow_html=True)
+
     st.subheader("오늘 기분 기록하기")
 
     user_input = st.text_area("오늘 기분을 적어줘", key="general_user_input_1")
@@ -505,7 +527,7 @@ def show_general_mode():
         if recent.count("불안") >= 2:
             st.warning("요즘 불안한 상태가 계속 이어지고 있어 보여")
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    
 def show_step_progress():
     step = st.session_state.step
     total = 5
@@ -583,7 +605,7 @@ def reset_autism_mode():
 
 
 def show_autism_mode():
-    st.markdown('<div class="fade">', unsafe_allow_html=True)
+    
     st.subheader("자폐 친화 모드")
     show_step_progress()
 
@@ -720,9 +742,13 @@ def show_autism_mode():
         st.caption(f"{secondary_emotion} • 원인: {cause}")
         save_autism_mode_log_once()
 
-        if st.button("다시 시작", key="autism_restart"):
-            reset_autism_mode()
-            st.rerun()
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
+
+        col1, col2, col3 = st.columns([1,2,1])
+        with col2:
+            if st.button("다시 시작", key="restart_btn"):
+                st.session_state.page = "intro"
+                st.rerun()
 
     if st.session_state.logs:
         render_emotion_flow(st.session_state.logs)
@@ -733,7 +759,7 @@ def show_autism_mode():
 
            st.line_chart(df.set_index("time")["emotion"])
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    
 # ---------------------------------
 # 세션 상태 초기화
 # ---------------------------------
@@ -810,10 +836,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ---------------------------------
-# 상단 UI
-# ---------------------------------
-st.title("정서로")
-st.caption("감정을 기록하고, 이해하고, 천천히 정리하는 공간")
+
 
 
