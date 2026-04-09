@@ -108,6 +108,23 @@ def show_guide():
         st.session_state.page = "main"
         st.rerun()
 
+def show_mode_select():
+    st.title("모드 선택")
+
+    st.markdown("""
+    사용 방식을 선택해주세요.
+
+    - 일반 모드: 자유롭게 감정을 기록하고 대화합니다  
+    - 자폐 친화 모드: 단계별 선택 기반으로 진행됩니다  
+    """)
+
+    mode = st.radio("선택", ["일반 모드", "자폐 친화 모드"], key="mode_select")
+
+    if st.button("시작"):
+        st.session_state.mode = mode
+        st.session_state.page = "main"
+        st.rerun()
+
 def get_bg_color(emotion: str) -> str:
     return EMOTION_BG_COLORS.get(emotion, "#ffffff")
 
@@ -348,7 +365,15 @@ elif st.session_state.page == "meaning":
 
 elif st.session_state.page == "guide":
     show_guide()
-    
+
+elif st.session_state.page == "mode":
+    show_mode_select()
+
+if st.session_state.mode == "일반 모드":
+        show_general_mode()
+    else:
+        show_autism_mode()
+        
 def show_general_mode():
     st.subheader("오늘 기분 기록하기")
 
