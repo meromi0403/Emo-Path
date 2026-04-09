@@ -340,18 +340,18 @@ def render_emotion_flow(logs: list[dict]):
     )
 
 
-    if st.session_state.page == "intro":
-         show_intro()
+if st.session_state.page == "intro":
+    show_intro()
 
-    elif st.session_state.page == "meaning":
-        show_meaning()
+elif st.session_state.page == "meaning":
+    show_meaning()
 
-   elif st.session_state.page == "guide":
-       show_guide()
+elif st.session_state.page == "guide":
+    show_guide()
 
-   elif st.session_state.page == "main":
-        show_general_mode()  
-
+elif st.session_state.page == "main":
+    show_general_mode()
+    
     st.subheader("오늘 기분 기록하기")
 
     user_input = st.text_area("오늘 기분을 적어줘", key="general_user_input")
