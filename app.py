@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -387,24 +388,6 @@ def render_emotion_flow(logs: list[dict]):
     )
 
 
-if st.session_state.page == "intro":
-    show_intro()
-
-elif st.session_state.page == "meaning":
-    show_meaning()
-
-elif st.session_state.page == "guide":
-    show_guide()
-
-elif st.session_state.page == "mode":
-    show_mode_select()
-
-elif st.session_state.page == "main":
-    if st.session_state.mode == "일반 모드":
-        show_general_mode()
-    else:
-        show_autism_mode()
-        
 def show_general_mode():
     st.markdown('<div class="fade">', unsafe_allow_html=True)
     st.subheader("오늘 기분 기록하기")
@@ -673,7 +656,7 @@ def show_autism_mode():
 
         st.subheader("감정 흐름")
 
-        st.line_chart(df.set_index("time")["emotion"])
+        
 
         emotion = st.session_state.get("emotion")
         if not emotion:
@@ -710,18 +693,17 @@ def show_autism_mode():
         추가 입력: {st.session_state.get("user_text", "")}
             """.strip()
 
-        with st.spinner("생각하는 중..."):
+            with st.spinner("생각하는 중..."):
                 response = generate_response(
                     user_input=user_input,
                     chat_history=st.session_state.chat_history[-3:],
                     emotion=emotion,
-                    mode="자폐 친화 모드",
-               )
+                    mode="자폐 친화 모드",)
 
-    st.write(response)
+            st.write(response)
     
         elif st.session_state.choice == "조용한 화면":
-          show_calm_screen()
+            show_calm_screen()
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -748,6 +730,8 @@ def show_autism_mode():
 
     if len(st.session_state.logs) > 1:
            df = pd.DataFrame(st.session_state.logs)
+
+           st.line_chart(df.set_index("time")["emotion"])
 
     st.markdown('</div>', unsafe_allow_html=True)
 # ---------------------------------
@@ -782,6 +766,26 @@ if "choice" not in st.session_state:
 
 if "autism_result_saved" not in st.session_state:
     st.session_state.autism_result_saved = False
+
+#페이지 분기
+if st.session_state.page == "intro":
+    show_intro()
+
+elif st.session_state.page == "meaning":
+    show_meaning()
+
+elif st.session_state.page == "guide":
+    show_guide()
+
+elif st.session_state.page == "mode":
+    show_mode_select()
+
+elif st.session_state.page == "main":
+    if st.session_state.mode == "일반 모드":
+        show_general_mode()
+    else:
+        show_autism_mode()
+
    
 # ---------------------------------
 # 스타일
@@ -811,10 +815,6 @@ st.markdown(
 # ---------------------------------
 st.title("정서로")
 st.caption("감정을 기록하고, 이해하고, 천천히 정리하는 공간")
-
-st.subheader("모드 선택")
-mode = st.radio("모드 선택", ["일반 모드", "자폐 친화 모드"], horizontal=True)
-st.session_state.mode = mode
 
 # ---------------------------------
 # 본문
