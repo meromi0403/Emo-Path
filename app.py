@@ -700,39 +700,28 @@ def show_autism_mode():
         st.subheader("결과")
 
         if st.session_state.choice == "진정":
-            show_breathing_box()
+    show_breathing_box()
 
         elif st.session_state.choice == "짧은 말":
             user_input = f"""
-감정: {emotion}
-강도: {intensity}
-감각: {st.session_state.get("sensory", "없음")}
-추가 입력: {st.session_state.get("user_text", "")}
+        감정: {emotion}
+        강도: {intensity}
+        감각: {st.session_state.get("sensory", "없음")}
+        추가 입력: {st.session_state.get("user_text", "")}
             """.strip()
 
-            
-            st.session_state.chat_history.append({
-                "role": "user",
-                "content": user_input
-            })
-            
-        with st.spinner("정서 흐름으로 이동 중..."):
-            response = generate_response(
-                user_input=user_input,
-                chat_history=st.session_state.chat_history[-3:],
-                emotion=emotion,
-                mode="자폐 친화 모드",
-            )
+            with st.spinner("생각하는 중..."):
+                response = generate_response(
+                    user_input=user_input,
+                    chat_history=st.session_state.chat_history[-3:],
+                    emotion=emotion,
+                    mode="자폐 친화 모드",
+               )
 
-            st.session_state.chat_history.append({
-                "role": "assistant",
-                "content": str(response)
-            })
+          st.write(response)
 
-            st.write(response)
-
-        elif st.session_state.choice == "조용한 화면":
-            show_calm_screen()
+      elif st.session_state.choice == "조용한 화면":
+          show_calm_screen()
 
         st.markdown("</div>", unsafe_allow_html=True)
 
