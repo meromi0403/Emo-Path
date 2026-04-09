@@ -12,7 +12,7 @@ if "page" not in st.session_state:
     
 import time
 
-if st.button("시작하기"):
+if st.button("시작하기", key="start_button"):
     with st.spinner("넘어가는 중..."):
         time.sleep(0.6)
         st.session_state.page = "meaning"
@@ -22,7 +22,7 @@ def show_intro():
     st.markdown('<div class="fade">', unsafe_allow_html=True)
     st.image("assets/start.png", use_container_width=True)
 
-    if st.button("시작하기"):
+    if st.button("시작하기", key="real_start"):
         st.session_state.page = "meaning"
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
