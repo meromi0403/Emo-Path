@@ -719,8 +719,8 @@ def show_autism_mode():
                )
 
     st.write(response)
-
-      elif st.session_state.choice == "조용한 화면":
+    
+        elif st.session_state.choice == "조용한 화면":
           show_calm_screen()
 
         st.markdown("</div>", unsafe_allow_html=True)
