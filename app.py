@@ -392,7 +392,7 @@ def show_general_mode():
     st.markdown('<div class="fade">', unsafe_allow_html=True)
     st.subheader("오늘 기분 기록하기")
 
-    user_input = st.text_area("오늘 기분을 적어줘", key="general_user_input")
+    user_input = st.text_area("오늘 기분을 적어줘", key="general_user_input_1")
 
     if st.button("기록하기", key="general_save_btn"):
         if not user_input.strip():
@@ -816,10 +816,4 @@ st.markdown(
 st.title("정서로")
 st.caption("감정을 기록하고, 이해하고, 천천히 정리하는 공간")
 
-# ---------------------------------
-# 본문
-# ---------------------------------
-if st.session_state.mode == "일반 모드":
-    show_general_mode()
-else:
-    show_autism_mode()
+
