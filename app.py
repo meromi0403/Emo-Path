@@ -6,7 +6,14 @@ from data.db import init_db, save_log, load_logs
 from core.emotion import analyze_emotion
 from core.response import generate_response
 from core.recommend import recommend_action
+if "page" not in st.session_state:
+    st.session_state.page = "intro"
+def show_intro():
+    st.image("start.png", use_container_width=True)  # 🔥 이미지 파일명
 
+    if st.button("시작하기"):
+        st.session_state.page = "meaning"
+        st.rerun()
 # ---------------------------------
 # 기본 설정
 # ---------------------------------
@@ -68,6 +75,38 @@ def detect_state(logs):
 
     return "일반 상태"
 
+
+def show_meaning():
+    st.title("정서로 의미")
+
+    st.markdown("""
+    우리는 감정을 단순한 상태가 아닌  
+    시간 속에서 변화하는 흐름으로 바라봅니다.
+
+    이 시스템은 감정을 기록하고,  
+    패턴을 통해 상태를 이해하고,  
+    사용자에게 맞는 반응을 제공합니다.
+    """)
+
+    if st.button("다음"):
+        st.session_state.page = "guide"
+        st.rerun()
+
+def show_guide():
+    st.title("사용 방법")
+
+    st.markdown("""
+    1. 현재 감정을 선택하세요  
+    2. 감정의 강도를 선택하세요  
+    3. 필요한 경우 추가 입력을 하세요  
+    4. 시스템이 상태를 분석하고 반응합니다  
+
+    👉 감정은 기록되고 흐름으로 분석됩니다.
+    """)
+
+    if st.button("시작"):
+        st.session_state.page = "main"
+        st.rerun()
 
 def get_bg_color(emotion: str) -> str:
     return EMOTION_BG_COLORS.get(emotion, "#ffffff")
@@ -301,7 +340,18 @@ def render_emotion_flow(logs: list[dict]):
     )
 
 
-def show_general_mode():
+def if st.session_state.page == "intro":
+    show_intro()
+
+    elif st.session_state.page == "meaning":
+        show_meaning()
+
+   elif st.session_state.page == "guide":
+       show_guide()
+
+   elif st.session_state.page == "main":
+        show_general_mode()  
+
     st.subheader("오늘 기분 기록하기")
 
     user_input = st.text_area("오늘 기분을 적어줘", key="general_user_input")
