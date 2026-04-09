@@ -700,7 +700,7 @@ def show_autism_mode():
         st.subheader("결과")
 
         if st.session_state.choice == "진정":
-    show_breathing_box()
+            show_breathing_box()
 
         elif st.session_state.choice == "짧은 말":
             user_input = f"""
