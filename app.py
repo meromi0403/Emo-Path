@@ -8,17 +8,41 @@ from core.response import generate_response
 from core.recommend import recommend_action
 if "page" not in st.session_state:
     st.session_state.page = "intro"
+    
+import time
+
+if st.button("시작하기"):
+    with st.spinner("넘어가는 중..."):
+        time.sleep(0.6)
+        st.session_state.page = "meaning"
+        st.rerun()
+        
 def show_intro():
+    st.markdown('<div class="fade">', unsafe_allow_html=True)
     st.image("assets/start.png", use_container_width=True)
 
     if st.button("시작하기"):
         st.session_state.page = "meaning"
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 # ---------------------------------
 # 기본 설정
 # ---------------------------------
 st.set_page_config(page_title="정서로", page_icon="🫧", layout="centered")
 init_db()
+
+st.markdown("""
+<style>
+.fade {
+    animation: fadeIn 0.6s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ---------------------------------
 # 상수 / 유틸
@@ -77,6 +101,7 @@ def detectss_state(logs):
 
 
 def show_meaning():
+    st.markdown('<div class="fade">', unsafe_allow_html=True)
     st.title("정서로 의미")
 
     st.markdown("""
@@ -91,8 +116,10 @@ def show_meaning():
     if st.button("다음"):
         st.session_state.page = "guide"
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def show_guide():
+    st.markdown('<div class="fade">', unsafe_allow_html=True)
     st.title("사용 방법")
 
     st.markdown("""
@@ -107,8 +134,10 @@ def show_guide():
     if st.button("시작"):
         st.session_state.page = "main"
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def show_mode_select():
+    st.markdown('<div class="fade">', unsafe_allow_html=True)
     st.title("모드 선택")
 
     st.markdown("""
@@ -124,6 +153,7 @@ def show_mode_select():
         st.session_state.mode = mode
         st.session_state.page = "main"
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def get_bg_color(emotion: str) -> str:
     return EMOTION_BG_COLORS.get(emotion, "#ffffff")
@@ -376,6 +406,7 @@ elif st.session_state.page == "main":
         show_autism_mode()
         
 def show_general_mode():
+    st.markdown('<div class="fade">', unsafe_allow_html=True)
     st.subheader("오늘 기분 기록하기")
 
     user_input = st.text_area("오늘 기분을 적어줘", key="general_user_input")
@@ -418,6 +449,8 @@ def show_general_mode():
             pass
 
         history, stats = build_history_and_stats(st.session_state.logs)
+        
+        with st.spinner("정서 흐름으로 이동 중..."):
         response = generate_response(
             user_input=user_input,
             chat_history=st.session_state.chat_history,
@@ -488,7 +521,7 @@ def show_general_mode():
         if recent.count("불안") >= 2:
             st.warning("요즘 불안한 상태가 계속 이어지고 있어 보여")
 
-
+    st.markdown('</div>', unsafe_allow_html=True)
 def show_step_progress():
     step = st.session_state.step
     total = 5
@@ -566,6 +599,7 @@ def reset_autism_mode():
 
 
 def show_autism_mode():
+    st.markdown('<div class="fade">', unsafe_allow_html=True)
     st.subheader("자폐 친화 모드")
     show_step_progress()
 
@@ -680,7 +714,8 @@ def show_autism_mode():
                 "role": "user",
                 "content": user_input
             })
-
+            
+        with st.spinner("정서 흐름으로 이동 중..."):
             response = generate_response(
                 user_input=user_input,
                 chat_history=st.session_state.chat_history[-3:],
@@ -724,7 +759,7 @@ def show_autism_mode():
     if len(st.session_state.logs) > 1:
            df = pd.DataFrame(st.session_state.logs)
 
-
+    st.markdown('</div>', unsafe_allow_html=True)
 # ---------------------------------
 # 세션 상태 초기화
 # ---------------------------------
@@ -757,7 +792,7 @@ if "choice" not in st.session_state:
 
 if "autism_result_saved" not in st.session_state:
     st.session_state.autism_result_saved = False
-
+   
 # ---------------------------------
 # 스타일
 # ---------------------------------
