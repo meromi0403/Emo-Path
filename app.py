@@ -710,7 +710,7 @@ def show_autism_mode():
         추가 입력: {st.session_state.get("user_text", "")}
             """.strip()
 
-            with st.spinner("생각하는 중..."):
+        with st.spinner("생각하는 중..."):
                 response = generate_response(
                     user_input=user_input,
                     chat_history=st.session_state.chat_history[-3:],
@@ -718,7 +718,7 @@ def show_autism_mode():
                     mode="자폐 친화 모드",
                )
 
-           st.write(response)
+    st.write(response)
 
       elif st.session_state.choice == "조용한 화면":
           show_calm_screen()
