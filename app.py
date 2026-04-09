@@ -22,7 +22,7 @@ def show_intro():
     st.markdown('<div class="fade">', unsafe_allow_html=True)
     st.image("assets/start.png", use_container_width=True)
 
-    if st.button("시작하기", key="real_start"):
+    if st.button("시작하기", key="intro_start"):
         st.session_state.page = "meaning"
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
