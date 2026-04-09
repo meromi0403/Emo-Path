@@ -451,10 +451,11 @@ def show_general_mode():
         history, stats = build_history_and_stats(st.session_state.logs)
         
         with st.spinner("정서 흐름으로 이동 중..."):
-        response = generate_response(
-            user_input=user_input,
-            chat_history=st.session_state.chat_history,
-            emotion=primary_emotion
+            response = generate_response(
+        
+                user_input=user_input,
+                chat_history=st.session_state.chat_history,
+                emotion=primary_emotion
         )
         action = recommend_action(primary_emotion)
         state = detect_state(st.session_state.logs)
