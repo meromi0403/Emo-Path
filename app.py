@@ -341,7 +341,7 @@ def render_emotion_flow(logs: list[dict]):
 
 
     if st.session_state.page == "intro":
-    show_intro()
+         show_intro()
 
     elif st.session_state.page == "meaning":
         show_meaning()
