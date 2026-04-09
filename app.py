@@ -718,7 +718,7 @@ def show_autism_mode():
                     mode="자폐 친화 모드",
                )
 
-          st.write(response)
+           st.write(response)
 
       elif st.session_state.choice == "조용한 화면":
           show_calm_screen()
