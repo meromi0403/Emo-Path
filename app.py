@@ -369,7 +369,8 @@ elif st.session_state.page == "guide":
 elif st.session_state.page == "mode":
     show_mode_select()
 
-if st.session_state.mode == "일반 모드":
+elif st.session_state.page == "main":
+    if st.session_state.mode == "일반 모드":
         show_general_mode()
     else:
         show_autism_mode()
