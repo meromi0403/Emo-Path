@@ -9,7 +9,7 @@ from core.recommend import recommend_action
 if "page" not in st.session_state:
     st.session_state.page = "intro"
 def show_intro():
-   st.image("assets/start.png", use_container_width=True)
+    st.image("assets/start.png", use_container_width=True)
 
     if st.button("시작하기"):
         st.session_state.page = "meaning"
@@ -56,7 +56,7 @@ EMOTION_SCORE_MAP = {
 
 DANGER_KEYWORDS = ["죽고싶", "자살", "사라지고싶", "끝내고싶", "없어지고싶"]
 
-def detect_state(logs):
+def detectss_state(logs):
     recent = logs[-5:]
 
     emotions = [l["emotion"] for l in recent]
@@ -119,7 +119,7 @@ def get_text_color(emotion: str) -> str:
 def intensity_to_score(value):
     return EMOTION_SCORE_MAP.get(value, 2)
 
-def detect_state(logs):
+def detects_state(logs):
     recent = logs[-5:]
 
     emotions = [l["emotion"] for l in recent]
