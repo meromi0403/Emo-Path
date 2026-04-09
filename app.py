@@ -350,8 +350,9 @@ elif st.session_state.page == "guide":
     show_guide()
 
 elif st.session_state.page == "main":
-    show_general_mode()
     
+    
+def show_general_mode():
     st.subheader("오늘 기분 기록하기")
 
     user_input = st.text_area("오늘 기분을 적어줘", key="general_user_input")
@@ -359,7 +360,8 @@ elif st.session_state.page == "main":
     if st.button("기록하기", key="general_save_btn"):
         if not user_input.strip():
             st.warning("조금만 적어줘 :)")
-        
+            return
+
         
         st.session_state.chat_history.append({
             "role": "user",
