@@ -348,9 +348,6 @@ elif st.session_state.page == "meaning":
 
 elif st.session_state.page == "guide":
     show_guide()
-
-elif st.session_state.page == "main":
-    
     
 def show_general_mode():
     st.subheader("오늘 기분 기록하기")
