@@ -9,7 +9,7 @@ from core.recommend import recommend_action
 if "page" not in st.session_state:
     st.session_state.page = "intro"
 def show_intro():
-    st.image("start.png", use_container_width=True)  # 🔥 이미지 파일명
+   st.image("assets/start.png", use_container_width=True)
 
     if st.button("시작하기"):
         st.session_state.page = "meaning"
