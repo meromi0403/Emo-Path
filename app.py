@@ -42,6 +42,39 @@ if st.session_state.user:
 
 import time
 
+
+st.markdown("""
+<style>
+.block-container {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+button {
+    border-radius: 12px !important;
+    height: 3em;
+    font-weight: 600;
+}
+
+h1, h2, h3 {
+    text-align: center;
+}
+
+.fade {
+    animation: fadeIn 0.8s ease-in;
+}
+
+@keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.markdown("""
 <div style="height: 200px;"></div>
 """, unsafe_allow_html=True)
