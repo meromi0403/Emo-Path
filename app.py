@@ -18,6 +18,7 @@ firebaseConfig = {
     "storageBucket": "emo-path.firebasestorage.app",
     "messagingSenderId": "565118700802",
     "appId": "1:565118700802:web:d9000deacc1cab1a3a061b",
+    "databaseURL":"https://emo-path-default-rtdb.firebaseio.com/"
 }
 
 firebase = pyrebase.initialize_app(firebaseConfig)
