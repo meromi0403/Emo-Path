@@ -28,6 +28,12 @@ db = firebase.database()
 if "user" not in st.session_state:
     st.session_state.user = None
 
+if "user_email" not in st.session_state:
+    st.session_state.user_email = None
+
+if "login_type" not in st.session_state:
+    st.session_state.login_type = None
+
 if st.session_state.user:
     if st.button("로그아웃", key="logout_btn"):
         st.session_state.user = None
@@ -50,6 +56,8 @@ def show_login():
         try:
             user = auth.sign_in_with_email_and_password(email, password)
             st.session_state.user = user
+            st.session_state.user_email = email  # 🔥 추가
+            st.session_state.login_type = "email"  # 🔥 추가
             st.success("로그인 성공")
             st.session_state.page = "intro"
             st.rerun()
@@ -60,10 +68,31 @@ def show_login():
         try:
             auth.create_user_with_email_and_password(email, password)
             st.success("회원가입 성공")
-        except:
-            st.error("이미 존재하는 계정") 
-    if st.button("Google로 로그인", key="google_fake"):
-        st.info("Google 계정으로 로그인해주세요 (이메일 로그인 사용)")
+        except Exception as e:
+            st.error(e) 
+    if st.button("🌐Google로 로그인", key="google_fake"):
+       st.session_state.page = "login_google"
+       st.rerun()
+
+def show_login_google():
+    st.title("🌐Google 로그인")
+
+    st.markdown("Google 계정 이메일을 입력해주세요")
+
+    email = st.text_input("Google 이메일", key="google_email")
+    password = st.text_input("비밀번호", type="password", key="google_pw")
+
+    if st.button("로그인", key="google_real_login"):
+        try:
+            user = auth.sign_in_with_email_and_password(email, password)
+            st.session_state.user = user
+            st.session_state.user_email = email
+            st.session_state.page = "intro"
+            st.success("로그인 성공")
+            st.rerun()
+        except Exception as e:
+            st.error(e)
+
 def show_intro():
     
     st.title("정서로")
@@ -461,8 +490,14 @@ def render_emotion_flow(logs: list[dict]):
 
 def show_general_mode():
     if st.session_state.user:
+        st.markdown(f"""
+        👤 {st.session_state.user_email}  
+        로그인 방식: {st.session_state.login_type}
+        """)
         if st.button("로그아웃", key="logout_btn"):
             st.session_state.user = None
+            st.session_state.user_email = None
+            st.session_state.login_type = None
             st.session_state.page = "intro"
             st.rerun()
 
@@ -672,8 +707,14 @@ def reset_autism_mode():
 
 def show_autism_mode():
     if st.session_state.user:
+        st.markdown(f"""
+        👤 {st.session_state.user_email}  
+        로그인 방식: {st.session_state.login_type}
+        """)
         if st.button("로그아웃", key="logout_btn"):
             st.session_state.user = None
+            st.session_state.user_email = None
+            st.session_state.login_type = None
             st.session_state.page = "intro"
             st.rerun()
     
@@ -879,6 +920,9 @@ if st.session_state.user is None:
     show_login()
 
 else:
+    if st.session_state.user:
+        st.success(f"{st.session_state.user_email}님 환영합니다")
+
     if st.session_state.page == "intro":
         show_intro()
 
@@ -896,6 +940,8 @@ else:
             show_general_mode()
         else:
             show_autism_mode()
+    elif st.session_state.page == "login_google":
+        show_login_google()
    
 # ---------------------------------
 # 스타일
