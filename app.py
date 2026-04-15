@@ -9,14 +9,60 @@ from core.response import generate_response
 from core.recommend import recommend_action
 if "page" not in st.session_state:
     st.session_state.page = "intro"
-    
+import pyrebase
+
+firebaseConfig = {
+    "apiKey": "AIzaSyCxLAvm4rKD_lNKE77_1NBCnjhJhDD9lGI",
+    "authDomain": "emo-path.firebaseapp.com",
+    "projectId": "emo-path",
+    "storageBucket": "emo-path.firebasestorage.app",
+    "messagingSenderId": "565118700802",
+    "appId": "1:565118700802:web:d9000deacc1cab1a3a061b",
+}
+
+firebase = pyrebase.initialize_app(firebaseConfig)
+auth = firebase.auth()
+db = firebase.database()
+
+if "user" not in st.session_state:
+    st.session_state.user = None
+
+if st.session_state.user:
+    if st.button("로그아웃", key="logout_btn"):
+        st.session_state.user = None
+        st.session_state.page = "intro"
+        st.rerun()
+
 import time
 
 st.markdown("""
 <div style="height: 200px;"></div>
 """, unsafe_allow_html=True)
 
-        
+def show_login():
+    st.title("로그인")
+
+    email = st.text_input("이메일")
+    password = st.text_input("비밀번호", type="password")
+
+    if st.button("로그인", key="login_btn"):
+        try:
+            user = auth.sign_in_with_email_and_password(email, password)
+            st.session_state.user = user
+            st.success("로그인 성공")
+            st.session_state.page = "intro"
+            st.rerun()
+        except:
+            st.error("로그인 실패")
+
+    if st.button("회원가입", key="signup_btn"):
+        try:
+            auth.create_user_with_email_and_password(email, password)
+            st.success("회원가입 성공")
+        except:
+            st.error("이미 존재하는 계정") 
+    if st.button("Google로 로그인", key="google_fake"):
+        st.info("Google 계정으로 로그인해주세요 (이메일 로그인 사용)")
 def show_intro():
     
     st.title("정서로")
@@ -102,6 +148,8 @@ EMOTION_SCORE_MAP = {
 }
 
 DANGER_KEYWORDS = ["죽고싶", "자살", "사라지고싶", "끝내고싶", "없어지고싶"]
+
+
 
 def detectss_state(logs):
     recent = logs[-5:]
@@ -411,6 +459,11 @@ def render_emotion_flow(logs: list[dict]):
 
 
 def show_general_mode():
+    if st.session_state.user:
+        if st.button("로그아웃", key="logout_btn"):
+            st.session_state.user = None
+            st.session_state.page = "intro"
+            st.rerun()
 
     st.subheader("오늘 기분 기록하기")
 
@@ -462,8 +515,20 @@ def show_general_mode():
                 chat_history=st.session_state.chat_history,
                 emotion=primary_emotion
         )
+            user_id = st.session_state.user["localId"]
+
+            data = {
+                "emotion": primary_emotion,
+                "intensity": intensity,
+                "text": user_input,
+                "time": str(datetime.now())
+            }
+
+            db.child("users").child(user_id).push(data)
+
         action = recommend_action(primary_emotion)
         state = detect_state(st.session_state.logs)
+
         # 상태 기반 UI 변화
         if state == "불안 축적 상태":
             st.markdown("""
@@ -471,7 +536,7 @@ def show_general_mode():
                 .stApp {
                     background-color: #fff5f5;
                 }
-                </style>
+                </style>ß
             """, unsafe_allow_html=True)
             st.warning("지금 불안이 계속 쌓이고 있어요. 잠깐 쉬는 게 좋아요.")
             st.write("👉 입력을 줄이고 간단한 선택을 추천해요")
@@ -605,6 +670,11 @@ def reset_autism_mode():
 
 
 def show_autism_mode():
+    if st.session_state.user:
+        if st.button("로그아웃", key="logout_btn"):
+            st.session_state.user = None
+            st.session_state.page = "intro"
+            st.rerun()
     
     st.subheader("자폐 친화 모드")
     show_step_progress()
@@ -721,6 +791,16 @@ def show_autism_mode():
                     chat_history=st.session_state.chat_history[-3:],
                     emotion=emotion,
                     mode="자폐 친화 모드",)
+                user_id = st.session_state.user["localId"]
+
+                data = {
+                    "emotion": emotion,
+                    "intensity": intensity,
+                    "text": st.session_state.get("user_text", ""),
+                    "time": str(datetime.now())
+                }
+
+                db.child("users").child(user_id).push(data)
 
             st.write(response)
     
@@ -794,24 +874,27 @@ if "autism_result_saved" not in st.session_state:
     st.session_state.autism_result_saved = False
 
 #페이지 분기
-if st.session_state.page == "intro":
-    show_intro()
+if st.session_state.user is None:
+    show_login()
 
-elif st.session_state.page == "meaning":
-    show_meaning()
+else:
+    if st.session_state.page == "intro":
+        show_intro()
 
-elif st.session_state.page == "guide":
-    show_guide()
+    elif st.session_state.page == "meaning":
+        show_meaning()
 
-elif st.session_state.page == "mode":
-    show_mode_select()
+    elif st.session_state.page == "guide":
+        show_guide()
 
-elif st.session_state.page == "main":
-    if st.session_state.mode == "일반 모드":
-        show_general_mode()
-    else:
-        show_autism_mode()
+    elif st.session_state.page == "mode":
+        show_mode_select()
 
+    elif st.session_state.page == "main":
+        if st.session_state.mode == "일반 모드":
+            show_general_mode()
+        else:
+            show_autism_mode()
    
 # ---------------------------------
 # 스타일
